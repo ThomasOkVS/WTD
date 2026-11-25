@@ -50,7 +50,7 @@ Presenter shortcuts. They work in the dev and production builds and have no on-s
 
 Except `M` and `L`, the keys are ignored while the Wine Tasting is open (the cellar is paused) and after game over. Digits use the physical number row (no Shift needed on AZERTY).
 
-Demo script (under 2 minutes): Play → `G` `G` `G` → place towers (incl. Thomas) and upgrade a few → `1` → wave cleared, Wine Tasting → pick a wine → `D` → click a tower → Repair (the pests fight back) → `W` for a second tasting → `7` (the last wave brings Le Monstre Blanc on its own) → fire Taureau Rouge as the boss enters → Le Monstre Blanc splits into cans → "The cellar holds!" → Claim victory → End screen (or Keep pouring to show Endless). Use `B` only to show the boss early on an empty field, never on top of wave 7.
+Demo script (under 2 minutes): Play → `G` `G` `G` → place towers (incl. Thomas) and spend the Grapes on upgrades → `1` → wave cleared, Wine Tasting → pick a wine → `D` → click a tower → Repair (the pests fight back) → `W` for a second tasting → `7` (the last wave brings Le Monstre Blanc on its own) → fire Taureau Rouge as the boss enters → watch it turn furious at half health → Le Monstre Blanc splits into cans → "The cellar holds!" → Claim victory → End screen (or Keep pouring to show Endless). Use `B` only to show the boss early on an empty field, never on top of wave 7.
 
 ## Nexios references
 
@@ -59,7 +59,7 @@ Parody names only, no real brands or likenesses:
 - **Thomas**: a generic sommelier tower (name only) who recruits pests to fight for the cellar and lifts the morale of nearby towers.
 - **Thomas's Annual Wine Tasting**: pick one wine buff between waves.
 - **Taureau Rouge Grand Cru**: the power-up (red/blue cellar lights, heartbeat, 2× fire rate).
-- **Le Monstre Blanc**: the final boss; it splits into cans when it dies.
+- **Le Monstre Blanc**: the final boss; it spits cans behind it, turns furious at half health, and splits into cans when it dies. From wave 6 on, every wave gets much tougher.
 - **Pest nests**: a tower the pests destroy becomes a nest that sends extra pests onto the path next wave. Repair in time!
 
 ## Assets & licences

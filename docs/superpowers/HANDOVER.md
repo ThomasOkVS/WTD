@@ -4,6 +4,15 @@
 
 ## Where things stand
 
+- **Difficulty ramp (plan `docs/superpowers/plans/2026-11-25-difficulty.md`, done ~15:10):**
+  - Waves 1–5 unchanged. From wave 6 on (scripted and Endless), with `r = wave − 5`: HP ×(1 + 0.35r), counts ×(1 + 0.25r) capped at 30 per group, speed ×min(1 + 0.04r, 1.4). Tuning knobs: `RAMP` in `src/logic/waves.js`. Spawned extras (nests, split and summoned cans) get the wave's HP and speed.
+  - Le Monstre Blanc: slam 40 damage (was 30), splits into 8 cans (was 6). Below 50% HP it turns **furious**: red tint, banner, shake, speed ×1.35, slam every 2.5 s. While alive it spits 2 cans behind it every 10 s (first after 5 s). Knobs: `enrage` and `summon` on `ENEMIES.monstre`.
+  - **Rulings (made autonomously, user away):**
+    - The plan's boss (3000 HP, armour 8, furious ×1.6, summons every 7 s) made the README demo script leak the boss every time (won with 6–7 lives but no split). Softened per the plan's order (summons 7 → 10 s, furious 1.6 → 1.35), and also kept boss HP/armour at the old 2200/6.
+    - The scripted wave-7 boss is **not** wave-scaled (×1.7 would make it 3740 HP); the Endless boss is (wave 10 ×2.75).
+  - **Demo script result** (headless `__game.step` run, committed numbers): 5 towers (Cork ×2, Sommelier, Decanter, Thomas), upgrades spending all but ~150 Grapes, wine, `D` + repair all, `W`, `7`, Taureau Rouge at boss spawn → boss turns furious, is killed and splits, "The cellar holds!" with **14 lives (6 lost)**. With a light build (~700 Grapes unspent) the boss leaks and you win with ~7 lives and no split: **spend the Grapes on upgrades before `7`**, and repair after `D`.
+  - Wave 6 with 3 unupgraded towers: all destroyed, 11 lives lost mid-wave. Endless at 2× to wave 12 (40 towers): no console errors, ≤29 pests on the field.
+  - Not done: a by-hand run of the demo script on the live site (the live bundle has the new numbers). Do it at demo prep.
 - **The game is finished and live:** https://thomasokvs.github.io/WTD/ (repo `ThomasOkVS/WTD`, public).
   - Every push to `main` deploys automatically through `.github/workflows/deploy.yml`: tests, build, then Pages, in about 1–2 minutes.
   - All 11 tasks of `docs/superpowers/plans/2026-11-25-wine-cellar-siege.md` are done, reviewed (per task and whole branch), and pushed.
@@ -106,7 +115,7 @@ Enemies (hp / speed / armour / reward):
 | fly | 20 | 200 | 0 | 3 |
 | corkscrew | 60 | 130 | 4 | 6 |
 | rat | 140 | 95 | 0 | 10 |
-| Le Monstre Blanc | 2200 | 45 | 6 | 200 (leak costs 10 lives; splits into 6 cans) |
+| Le Monstre Blanc | 2200 | 45 | 6 | 200 (leak costs 10 lives; splits into 8 cans; furious below 50%; summons 2 cans / 10 s) |
 | can | 80 | 110 | 2 | 4 |
 
 The player starts with 150 Grapes and 20 lives.
