@@ -27,9 +27,9 @@ describe('pest nests', () => {
     const nests = [createNest(thomas)];
     expect(nestSchedule(nests, at, 1)).toEqual([]);
     armNests(nests);
-    const s = nestSchedule(nests, at, 1.15);
+    const s = nestSchedule(nests, at, 1.7, 1.08);
     expect(s).toHaveLength(6);
-    expect(s.every((e) => e.type === 'rat' && e.distance === 500 && e.hpMult === 1.15)).toBe(true);
+    expect(s.every((e) => e.type === 'rat' && e.distance === 500 && e.hpMult === 1.7 && e.speedMult === 1.08)).toBe(true);
     expect(s[0].atMs).toBe(2000);
     expect(s[1].atMs).toBe(3200);
     expect(nestPests(nests)).toBe(6);

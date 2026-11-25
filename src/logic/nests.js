@@ -23,13 +23,13 @@ export function nestPests(nests) {
 }
 
 // Schedule entries for the armed nests; entryDistance(nest) = where on the path they join.
-export function nestSchedule(nests, entryDistance, hpMult = 1) {
+export function nestSchedule(nests, entryDistance, hpMult = 1, speedMult = 1) {
   const out = [];
   for (const n of nests) {
     if (!n.armed) continue;
     const distance = entryDistance(n);
     for (let i = 0; i < pestsOf(n); i++) {
-      out.push({ atMs: NESTS.delayMs + i * NESTS.intervalMs, type: NESTS.spawn[n.type], hpMult, distance, nestId: n.id });
+      out.push({ atMs: NESTS.delayMs + i * NESTS.intervalMs, type: NESTS.spawn[n.type], hpMult, speedMult, distance, nestId: n.id });
     }
   }
   return out;

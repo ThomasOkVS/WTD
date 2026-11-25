@@ -10,7 +10,7 @@ describe('waves', () => {
   ] };
   it('buildSchedule sorts by time', () => {
     expect(buildSchedule(wave)).toEqual([
-      { atMs: 0, type: 'fly', hpMult: 1 }, { atMs: 50, type: 'rat', hpMult: 1 }, { atMs: 100, type: 'fly', hpMult: 1 }, { atMs: 200, type: 'fly', hpMult: 1 },
+      { atMs: 0, type: 'fly', hpMult: 1, speedMult: 1 }, { atMs: 50, type: 'rat', hpMult: 1, speedMult: 1 }, { atMs: 100, type: 'fly', hpMult: 1, speedMult: 1 }, { atMs: 200, type: 'fly', hpMult: 1, speedMult: 1 },
     ]);
   });
   it('runner releases due spawns', () => {
@@ -49,24 +49,40 @@ describe('describeWave', () => {
   });
 });
 
-describe('waveAt (endless)', () => {
-  it('returns the scripted waves with hpMult 1', () => {
-    expect(waveAt(0)).toEqual({ ...WAVES[0], hpMult: 1 });
+describe('waveAt (difficulty curve)', () => {
+  it('waves 1-5 are unchanged', () => {
+    for (let i = 0; i < 5; i++) expect(waveAt(i)).toEqual({ ...WAVES[i], hpMult: 1, speedMult: 1 });
   });
-  it('wave 8 scales the last wave without its boss', () => {
+  it('wave 6 ramps hp, speed and counts', () => {
+    const w = waveAt(5);
+    expect(w.hpMult).toBeCloseTo(1.35);
+    expect(w.speedMult).toBeCloseTo(1.04);
+    WAVES[5].groups.forEach((g, i) => expect(w.groups[i].count).toBe(Math.min(30, Math.round(g.count * 1.25))));
+  });
+  it('wave 7 keeps a single boss', () => {
+    const w = waveAt(6);
+    expect(w.hpMult).toBeCloseTo(1.7);
+    expect(w.groups.find((g) => g.type === 'monstre').count).toBe(1);
+  });
+  it('wave 8 (endless) continues the curve without the boss', () => {
     const w = waveAt(7);
-    expect(w.hpMult).toBeCloseTo(1.15);
+    expect(w.hpMult).toBeCloseTo(2.05);
     expect(w.groups.some((g) => g.type === 'monstre')).toBe(false);
-    expect(w.groups.find((g) => g.type === 'corkscrew').count).toBe(14);
   });
-  it('Le Monstre Blanc returns every 3rd endless wave', () => {
-    expect(waveAt(9).groups.some((g) => g.type === 'monstre')).toBe(true);
+  it('wave 10 is 2.75x and brings Le Monstre Blanc back', () => {
+    const w = waveAt(9);
+    expect(w.hpMult).toBeCloseTo(2.75);
+    expect(w.groups.find((g) => g.type === 'monstre').count).toBe(1);
   });
-  it('caps every endless group at 30 pests (perf)', () => {
-    for (const g of waveAt(40).groups) expect(g.count).toBeLessThanOrEqual(30);
+  it('caps speed at 1.4 and every group at 30 pests (perf)', () => {
+    const w = waveAt(40);
+    expect(w.speedMult).toBeCloseTo(1.4);
+    for (const g of w.groups) expect(g.count).toBeLessThanOrEqual(30);
   });
-  it('buildSchedule carries hpMult', () => {
-    expect(buildSchedule(waveAt(7))[0].hpMult).toBeCloseTo(1.15);
+  it('buildSchedule carries hpMult and speedMult', () => {
+    const e = buildSchedule(waveAt(6))[0];
+    expect(e.hpMult).toBeCloseTo(1.7);
+    expect(e.speedMult).toBeCloseTo(1.08);
     expect(buildSchedule(WAVES[0])[0].hpMult).toBe(1);
   });
 });

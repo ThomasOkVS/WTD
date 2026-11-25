@@ -57,6 +57,7 @@ export class GameScene extends Phaser.Scene {
     this.pauseOpen = false;
     this.endless = false;
     this.waveHpMult = 1;
+    this.waveSpeedMult = 1;
     // Clock and TweenManager survive restarts: a new run always starts at 1x.
     this.speed = 1;
     this.autoIn = null; // ms until the auto next wave, null = no countdown
@@ -471,8 +472,9 @@ export class GameScene extends Phaser.Scene {
     this.state.wave += 1;
     const wave = waveAt(this.waveIndex);
     this.waveHpMult = wave.hpMult;
+    this.waveSpeedMult = wave.speedMult;
     armNests(this.state.nests); // standing nests spawn this wave, then collapse at its clear
-    const fromNests = nestSchedule(this.state.nests, (n) => distanceAlongPath(PATH, n), wave.hpMult);
+    const fromNests = nestSchedule(this.state.nests, (n) => distanceAlongPath(PATH, n), wave.hpMult, wave.speedMult);
     this.runner = createWaveRunner([...buildSchedule(wave), ...fromNests].sort((a, b) => a.atMs - b.atMs));
     for (const n of this.state.nests) this.stirNest(n);
     if (this.state.nests.length) this.events.emit('nests-armed', this.state.nests.length);
@@ -504,7 +506,7 @@ export class GameScene extends Phaser.Scene {
   // A wave schedule entry: a normal spawn at the entrance, or a pest crawling
   // out of a nest onto the nearest stretch of path.
   spawnScheduled(entry) {
-    const e = this.spawnEnemy(entry.type, entry.distance ?? 0, entry.hpMult ?? this.waveHpMult);
+    const e = this.spawnEnemy(entry.type, entry.distance ?? 0, entry.hpMult ?? this.waveHpMult, entry.speedMult ?? this.waveSpeedMult);
     const nest = entry.nestId && this.state.nests.find((n) => n.id === entry.nestId);
     if (!nest) return e;
     e.update(0, this.clock); // on the path now, then shown scuttling over from the nest
@@ -549,8 +551,8 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: c, alpha: 0, scale: 0.6, duration: 380, onComplete: () => c.destroy() });
   }
 
-  spawnEnemy(type, distance = 0, hpMult = 1) {
-    const e = new Enemy(this, type, distance, hpMult);
+  spawnEnemy(type, distance = 0, hpMult = 1, speedMult = 1) {
+    const e = new Enemy(this, type, distance, hpMult, speedMult);
     this.enemies.push(e);
     if (e.boss) this.events.emit('boss-spawned', type);
     return e;
@@ -562,7 +564,7 @@ export class GameScene extends Phaser.Scene {
     const { type, count } = ENEMIES[boss.type].splitInto;
     for (let i = 0; i < count; i++) {
       const off = count > 1 ? -40 + (80 * i) / (count - 1) : 0;
-      const can = this.spawnEnemy(type, Math.min(this.path.length - 1, Math.max(0, boss.distance + off)), this.waveHpMult);
+      const can = this.spawnEnemy(type, Math.min(this.path.length - 1, Math.max(0, boss.distance + off)), this.waveHpMult, this.waveSpeedMult);
       can.update(0, this.clock); // place it now, not at the entrance
       this.tweens.killTweensOf(can.sprite);
       can.sprite.setAlpha(1).setScale(0.2);
