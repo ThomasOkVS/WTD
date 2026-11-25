@@ -9,7 +9,7 @@ export const ENEMIES = {
   // Balance (demo script must win and split the boss): hp/armour stay 2200/6; it is
   // harder through the 40-damage slam, 8 cans, the furious phase and the summons.
   monstre: { hp: 2200, speed: 45, armour: 6, reward: 200, leakCost: 10, splitInto: { type: 'can', count: 8 },
-    attack: { style: 'slam', reach: 160, damage: 40, cooldownMs: 4000 },
+    attack: { style: 'slam', reach: 160, damage: 30, cooldownMs: 4000 },
     enrage: { at: 0.5, speedMult: 1.35, slamCooldownMs: 2500 },
     summon: { type: 'can', count: 2, everyMs: 10000, firstMs: 5000 } },
   can: { hp: 80, speed: 110, armour: 2, reward: 4, leakCost: 1, attack: { style: 'burst', reach: 70, damage: 25 } },

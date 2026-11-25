@@ -112,7 +112,7 @@ describe('siege: pest attackers', () => {
   it('slam hits every tower in reach', () => {
     const r = tickAttacker(createAttacker(ENEMIES.monstre.attack), P, [T(1, 100), T(2, 150), T(3, 170)], 16);
     expect(r.hits.map((h) => h.id)).toEqual([1, 2]);
-    expect(r.hits[0].damage).toBe(40);
+    expect(r.hits[0].damage).toBe(30);
   });
   it('damageMult scales and floors at 1', () => {
     SIEGE.damageMult = 0.1;

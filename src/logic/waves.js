@@ -45,12 +45,15 @@ export function describeWave(wave) {
 // Endless replays wave 7's pests; Le Monstre Blanc returns every 3rd endless wave.
 const RAMP_FROM = 5; // 0-based index of wave 6
 export const RAMP = { hp: 0.35, count: 0.25, speed: 0.04, speedCap: 1.4, groupCap: 30 };
+// Scripted waves 6-7 ramp gentler (demo safety: a 6-9 tower presenter build must win).
+export const SCRIPTED_RAMP = { hp: 0.15, count: 0.1 };
 
 export function waveAt(index) {
   const r = Math.max(0, index + 1 - RAMP_FROM);
   if (r === 0) return { ...WAVES[index], hpMult: 1, speedMult: 1 };
+  const ramp = index < WAVES.length ? SCRIPTED_RAMP : RAMP;
   // The scripted wave-7 boss is not wave-scaled (demo safety); the Endless boss is.
-  const scale = (g) => (g.type === 'monstre' ? { ...g, hpMult: 1, speedMult: 1 } : { ...g, count: Math.min(RAMP.groupCap, Math.round(g.count * (1 + RAMP.count * r))) });
+  const scale = (g) => (g.type === 'monstre' ? { ...g, hpMult: 1, speedMult: 1 } : { ...g, count: Math.min(RAMP.groupCap, Math.round(g.count * (1 + ramp.count * r))) });
   let groups;
   if (index < WAVES.length) {
     groups = WAVES[index].groups.map(scale);
@@ -59,5 +62,5 @@ export function waveAt(index) {
     groups = WAVES[WAVES.length - 1].groups.filter((g) => g.type !== 'monstre').map(scale);
     if (k % 3 === 0) groups.push({ type: 'monstre', count: 1, intervalMs: 0, delayMs: 9000 });
   }
-  return { groups, hpMult: 1 + RAMP.hp * r, speedMult: Math.min(1 + RAMP.speed * r, RAMP.speedCap) };
+  return { groups, hpMult: 1 + ramp.hp * r, speedMult: Math.min(1 + RAMP.speed * r, RAMP.speedCap) };
 }
