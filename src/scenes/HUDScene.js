@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TOWERS, statLine } from '../config/towers.js';
 import { towerStats } from '../logic/towers.js';
+import { repairCost } from '../logic/siege.js';
 import { WAVES } from '../config/waves.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
@@ -16,6 +17,7 @@ const TOAST = {
   bounds: 'Build inside the cellar',
   unique: 'Thomas is already on duty',
   max: 'Fully upgraded',
+  full: 'Not a scratch on it',
 };
 
 // Parallel UI scene above the lit cellar. Launched by Game (with starting
@@ -65,6 +67,10 @@ export class HUDScene extends Phaser.Scene {
     this.listen('tower-clicked', this.openUpgrade);
     this.listen('tower-upgraded', this.onUpgraded);
     this.listen('upgrade-refused', this.onUpgradeRefused);
+    this.listen('tower-damaged', this.onTowerHp);
+    this.listen('tower-repaired', this.onTowerHp);
+    this.listen('repair-refused', this.onRepairRefused);
+    this.listen('tower-destroyed', this.onTowerDestroyed);
     this.listen('power-changed', this.setPower);
     this.listen('power-refused', () => this.showToast('Save it for the pests!'));
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
@@ -516,9 +522,9 @@ export class HUDScene extends Phaser.Scene {
   openUpgrade(placed) {
     this.closeUpgrade(true);
     const spot = { x: placed.x, y: placed.y };
-    const W = 280, H = 168;
+    const W = 280, H = 236;
     const x = Phaser.Math.Clamp(spot.x, W / 2 + 12, 1280 - W / 2 - 12);
-    const y = spot.y > 330 ? spot.y - 30 - H / 2 : spot.y + 40 + H / 2;
+    const y = Phaser.Math.Clamp(spot.y > 330 ? spot.y - 30 - H / 2 : spot.y + 40 + H / 2, H / 2 + 8, 712 - H / 2);
 
     // full-screen blocker: an outside click closes the panel and nothing else
     const blocker = this.add.zone(640, 360, 1280, 720).setInteractive();
@@ -528,14 +534,18 @@ export class HUDScene extends Phaser.Scene {
     const bg = panel(this, 0, 0, W, H);
     bg.setInteractive(); // clicks on the panel body are swallowed, not 'outside'
     bg.on('pointerdown', () => {});
-    const title = this.add.text(0, -54, '', serif(19)).setOrigin(0.5);
-    const level = this.add.text(0, -30, '', body(17, PALETTE.burgundy)).setOrigin(0.5);
-    const rule = this.add.rectangle(0, -14, W - 70, 1.5, COLORS.burgundy, 0.55);
-    const next = this.add.text(0, 6, '', body(18)).setOrigin(0.5);
+    const title = this.add.text(0, -88, '', serif(19)).setOrigin(0.5);
+    const level = this.add.text(0, -64, '', body(17, PALETTE.burgundy)).setOrigin(0.5);
+    const hp = this.add.text(0, -42, '', body(16)).setOrigin(0.5);
+    const hpBar = this.add.graphics();
+    const rule = this.add.rectangle(0, -12, W - 70, 1.5, COLORS.burgundy, 0.55);
+    const next = this.add.text(0, 8, '', body(18)).setOrigin(0.5);
     const btn = button(this, 0, 48, 196, 42, '', () => this.emit('upgrade-tower', placed), { size: 17 });
-    c.add([bg, title, level, rule, next, btn]);
+    // never disabled: a refused repair still gets its shake + toast
+    const repair = button(this, 0, 98, 196, 38, '', () => this.emit('repair-tower', placed), { size: 16 });
+    c.add([bg, title, level, hp, hpBar, rule, next, btn, repair]);
     this.upgradeFor = placed;
-    this.upgradeUi = { c, blocker, title, level, next, btn };
+    this.upgradeUi = { c, blocker, title, level, hp, hpBar, next, btn, repair };
     this.refreshUpgrade();
     c.setScale(0.94);
     this.tweens.add({ targets: c, scale: 1, duration: 220, ease: 'Back.easeOut' });
@@ -551,6 +561,7 @@ export class HUDScene extends Phaser.Scene {
     ui.title.setText(placed.level === 0 ? cfg.name : ups[placed.level - 1].name);
     fitText(ui.title.setScale(1), 240);
     ui.level.setText(`Level ${placed.level + 1} of ${ups.length + 1}`);
+    this.refreshHp();
     const up = ups[placed.level];
     if (!up) {
       ui.next.setText('Fully aged, nothing left to add');
@@ -563,6 +574,46 @@ export class HUDScene extends Phaser.Scene {
     ui.btn.label.setText(`Upgrade for ${up.cost}`);
     const ok = this.grapes >= up.cost;
     if (ok !== ui.btn.enabled) ui.btn.setEnabled(ok);
+  }
+
+  refreshHp() {
+    const ui = this.upgradeUi;
+    const placed = this.upgradeFor;
+    if (!ui || !placed) return;
+    const max = towerStats(placed).maxHp;
+    const hp = Math.max(0, Math.round(placed.hp));
+    const f = Math.max(0, Math.min(1, hp / max));
+    ui.hp.setText(`HP ${hp} / ${max}`);
+    const w = 120, h = 6;
+    ui.hpBar.clear().fillStyle(0x120a0d, 0.8).fillRect(-w / 2 - 1, -27, w + 2, h + 2);
+    ui.hpBar.fillStyle(f > 0.5 ? 0x8fd16a : f > 0.25 ? 0xffb35c : 0xd01a3a, 1).fillRect(-w / 2, -26, w * f, h);
+    const cost = repairCost(placed);
+    ui.repair.label.setText(cost > 0 ? `Repair for ${cost}` : 'No scratches');
+    ui.repair.setAlpha(cost > 0 && this.grapes >= cost ? 1 : 0.55);
+  }
+
+  onTowerHp(placed) {
+    if (!this.upgradeFor || placed.id !== this.upgradeFor.id) return;
+    this.refreshHp();
+  }
+
+  onRepairRefused(reason) {
+    if (!this.upgradeUi) return;
+    shake(this, this.upgradeUi.repair, 0);
+    if (reason === 'grapes') {
+      shake(this, this.grapesPanel, 16);
+      this.flash(this.grapesFlash);
+    }
+    this.showToast(TOAST[reason] || 'Cannot repair');
+  }
+
+  onTowerDestroyed(placed) {
+    if (this.upgradeFor?.id === placed.id) this.closeUpgrade();
+    if (placed.type === 'thomas') {
+      this.thomasPlaced = false;
+      this.refreshCards();
+    }
+    this.showToast(`${TOWERS[placed.type].name} was destroyed!`);
   }
 
   onUpgraded(placed) {
