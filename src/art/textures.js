@@ -6,7 +6,7 @@ import { HD } from '../ui/hd.js';
 
 export const TEXTURE_KEYS = [
   'stone-floor', 'path-tile', 'barrel', 'candle', 'light-soft', 'vignette', 'grand-cru',
-  'enemy-fly', 'enemy-corkscrew', 'enemy-rat', 'enemy-monstre', 'enemy-can',
+  'enemy-fly', 'enemy-corkscrew', 'enemy-rat', 'enemy-monstre', 'enemy-can', 'nest',
   'tower-sommelier', 'tower-cork', 'tower-decanter', 'tower-thomas',
   'proj-cork', 'proj-wine', 'drop', 'spark', 'taureau-rouge', 'parchment-panel',
 ];
@@ -974,6 +974,38 @@ function parchmentPanel(ctx, w, h) {
   }
 }
 
+// Pest nest: a rubble mound around a black burrow, red eyes peering out.
+function nest(ctx, w, h) {
+  const cx = w / 2, base = h - 8;
+  ellipse(ctx, cx, base + 2, 28, 7, 'rgba(0,0,0,0.45)'); // ground shadow
+  // rubble stones
+  const stones = [[-18, -4, 10, 7, '#5a4a44'], [17, -5, 11, 8, '#4e403b'], [-8, -11, 9, 7, '#6a5850'], [9, -12, 8, 6, '#5e4c45'], [0, -2, 13, 6, '#463833']];
+  for (const [dx, dy, rx, ry, col] of stones) {
+    ellipse(ctx, cx + dx, base + dy, rx, ry, col);
+    ctx.strokeStyle = 'rgba(20,10,12,0.9)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(cx + dx, base + dy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ellipse(ctx, cx + dx - rx * 0.3, base + dy - ry * 0.4, rx * 0.35, ry * 0.25, 'rgba(255,220,190,0.18)');
+  }
+  // burrow hole
+  ellipse(ctx, cx, base - 9, 11, 7, '#0a0406');
+  ellipse(ctx, cx, base - 10, 9, 5, '#000000');
+  // wine-red cracks
+  ctx.strokeStyle = '#8a1c2b';
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(cx - 24, base - 2); ctx.lineTo(cx - 16, base - 6); ctx.lineTo(cx - 12, base - 3);
+  ctx.moveTo(cx + 22, base - 1); ctx.lineTo(cx + 15, base - 7); ctx.lineTo(cx + 18, base - 11);
+  ctx.stroke();
+  // glowing eyes in the burrow and between the stones
+  for (const [ex, ey, r] of [[-3.5, -10, 1.6], [3.5, -10, 1.6], [-16, -12, 1.2], [-13, -12, 1.2]]) {
+    ellipse(ctx, cx + ex, base + ey, r * 2.2, r * 2.2, 'rgba(255,58,74,0.35)');
+    ellipse(ctx, cx + ex, base + ey, r, r, '#ff3a4a');
+  }
+}
+
 export function generateTextures(scene) {
   make(scene, 'stone-floor', 128, 128, (c, w) => stoneFloor(c, w), 1); // ss 1: TileSprite repeats source pixels
   make(scene, 'path-tile', 64, 64, (c, w) => pathTile(c, w), 1); // ss 1: TileSprite
@@ -987,6 +1019,7 @@ export function generateTextures(scene) {
   make(scene, 'enemy-rat', 44, 32, enemyRat);
   make(scene, 'enemy-monstre', 96, 48, enemyMonstre);
   make(scene, 'enemy-can', 40, 24, enemyCan);
+  make(scene, 'nest', 64, 48, nest);
   make(scene, 'tower-sommelier', 64, 64, towerSommelier);
   make(scene, 'tower-cork', 64, 64, towerCork);
   make(scene, 'tower-decanter', 64, 64, towerDecanter);

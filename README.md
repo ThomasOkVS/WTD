@@ -60,6 +60,7 @@ Parody names only, no real brands or likenesses:
 - **Thomas's Annual Wine Tasting**: pick one wine buff between waves.
 - **Taureau Rouge Grand Cru**: the power-up (red/blue cellar lights, heartbeat, 2× fire rate).
 - **Le Monstre Blanc**: the final boss; it splits into cans when it dies.
+- **Pest nests**: a tower the pests destroy becomes a nest that sends extra pests onto the path next wave. Repair in time!
 
 ## Assets & licences
 

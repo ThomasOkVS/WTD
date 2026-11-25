@@ -5,6 +5,7 @@ import { towerStats } from '../logic/towers.js';
 import { repairCost, sellValue } from '../logic/siege.js';
 import { WAVES } from '../config/waves.js';
 import { describeWave, waveAt } from '../logic/waves.js';
+import { nestPests } from '../logic/nests.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
 import { describeEffect } from './TastingScene.js';
@@ -42,6 +43,7 @@ export class HUDScene extends Phaser.Scene {
     this.game$ = this.scene.get('Game').events;
     this.input.enabled = true; // re-enable after a previous run's game-over
     this.listeners = [];
+    this.nestHinted = false; // one nest toast per run
     this.selected = null;
     this.thomasPlaced = false;
     this.endless = false;
@@ -84,6 +86,11 @@ export class HUDScene extends Phaser.Scene {
     this.listen('endless-started', this.onEndless);
     this.listen('speed-changed', (n) => { this.speed = n; this.speedUi.draw(); });
     this.listen('power-refused', () => this.showToast('Save it for the pests!'));
+    this.listen('nest-created', () => {
+      if (!this.nestHinted) this.showToast('Destroyed towers become pest nests next wave. Repair in time!', 3200);
+      this.nestHinted = true;
+      this.refreshPreview(this.preview.visible);
+    });
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
     this.listen('buff-added', (wine) => this.banner(`Buff: ${wine.name}`, describeEffect(wine.effect).replace('\n', ', ')));
     this.listen('game-over', () => {
@@ -405,7 +412,9 @@ export class HUDScene extends Phaser.Scene {
   // Description of the wave the Next wave button would start, or null.
   nextWaveText() {
     if (this.wave >= WAVES.length && !this.endless) return null;
-    return `Next: ${describeWave(waveAt(this.wave))}`;
+    const nests = this.scene.get('Game')?.state?.nests ?? [];
+    const fromNests = nests.length ? ` · Nests +${nestPests(nests)}` : '';
+    return `Next: ${describeWave(waveAt(this.wave))}${fromNests}`;
   }
 
   refreshPreview(show) {

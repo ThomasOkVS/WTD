@@ -3,7 +3,8 @@ import { hdCamera } from '../ui/hd.js';
 import { PATH } from '../config/map.js';
 import { TOWERS } from '../config/towers.js';
 import { WAVES } from '../config/waves.js';
-import { createPath } from '../logic/path.js';
+import { createPath, distanceAlongPath } from '../logic/path.js';
+import { createNest, armNests, nestSchedule, collapseNests } from '../logic/nests.js';
 import { createGameState, earn, loseLives } from '../logic/state.js';
 import { canPlace, placeTower, upgradeTower, snap, towerStats } from '../logic/towers.js';
 import { recruitSmash } from '../logic/combat.js';
@@ -11,7 +12,7 @@ import { buildSchedule, createWaveRunner, waveBonus, waveAt } from '../logic/wav
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
 import { drawCellar } from '../fx/cellar.js';
-import { ENEMIES } from '../config/enemies.js';
+import { ENEMIES, NESTS } from '../config/enemies.js';
 import { createPowerUp } from '../logic/buffs.js';
 import { play } from '../fx/sound.js';
 import { startDust, shatter, splash, corkPop } from '../fx/particles.js';
@@ -43,6 +44,7 @@ export class GameScene extends Phaser.Scene {
     this.path = createPath(PATH);
     this.enemies = [];
     this.towers = [];
+    this.nestSprites = new Map(); // nest id -> container (pest nests)
     this.projectiles = [];
     this.selectedType = null;
     this.runner = null;
@@ -360,6 +362,7 @@ export class GameScene extends Phaser.Scene {
       removeTower(this.state, t.placed);
       this.floatText(x, y - 40, `${TOWERS[t.placed.type].name} destroyed!`, '#ff6b6b');
       this.events.emit('tower-destroyed', t.placed);
+      if (NESTS.enabled) this.addNest(createNest(t.placed));
     }
   }
 
@@ -468,7 +471,11 @@ export class GameScene extends Phaser.Scene {
     this.state.wave += 1;
     const wave = waveAt(this.waveIndex);
     this.waveHpMult = wave.hpMult;
-    this.runner = createWaveRunner(buildSchedule(wave));
+    armNests(this.state.nests); // standing nests spawn this wave, then collapse at its clear
+    const fromNests = nestSchedule(this.state.nests, (n) => distanceAlongPath(PATH, n), wave.hpMult);
+    this.runner = createWaveRunner([...buildSchedule(wave), ...fromNests].sort((a, b) => a.atMs - b.atMs));
+    for (const n of this.state.nests) this.stirNest(n);
+    if (this.state.nests.length) this.events.emit('nests-armed', this.state.nests.length);
     play('wave');
     this.events.emit('wave-started', this.waveIndex);
   }
@@ -492,6 +499,54 @@ export class GameScene extends Phaser.Scene {
 
   rewardMult() {
     return this.state.buffs.reduce((m, b) => (b.stat === 'reward' ? m * b.mult : m), 1);
+  }
+
+  // A wave schedule entry: a normal spawn at the entrance, or a pest crawling
+  // out of a nest onto the nearest stretch of path.
+  spawnScheduled(entry) {
+    const e = this.spawnEnemy(entry.type, entry.distance ?? 0, entry.hpMult ?? this.waveHpMult);
+    const nest = entry.nestId && this.state.nests.find((n) => n.id === entry.nestId);
+    if (!nest) return e;
+    e.update(0, this.clock); // on the path now, then shown scuttling over from the nest
+    e.offX = nest.x - e.x;
+    e.offY = nest.y - e.y;
+    this.tweens.add({ targets: e, offX: 0, offY: 0, duration: 300, ease: 'Quad.easeOut' });
+    this.sparks.explode(5, nest.x, nest.y);
+    play('hit', { pitch: 0.7 });
+    return e;
+  }
+
+  // ---------- pest nests (a destroyed tower spawns pests next wave) ----------
+  addNest(nest) {
+    this.state.nests.push(nest);
+    const glow = this.add.image(0, -6, 'light-soft').setBlendMode(Phaser.BlendModes.ADD).setTint(0xd01a3a)
+      .setDisplaySize(120, 90).setAlpha(0.5);
+    const img = this.add.image(0, 0, 'nest').setOrigin(0.5, 0.7);
+    // above the darkness so it reads at night; glow pulses
+    const c = this.add.container(nest.x, nest.y + 10, [glow, img]).setDepth(2550).setScale(0);
+    this.tweens.add({ targets: c, scale: 1.25, duration: 320, ease: 'Back.easeOut' }); // a bit larger: reads on a projector
+    this.tweens.add({ targets: glow, alpha: { from: 0.25, to: 0.6 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    Object.assign(c, { glow });
+    this.nestSprites.set(nest.id, c);
+    this.floatText(nest.x, nest.y - 20, 'A pest nest!', '#ff6b6b');
+    this.events.emit('nest-created', nest);
+  }
+
+  stirNest(nest) {
+    const c = this.nestSprites.get(nest.id);
+    if (!c) return;
+    c.glow.setTint(0xff3a4a);
+    this.tweens.add({ targets: c, x: nest.x + 3, duration: 60, yoyo: true, repeat: 5 });
+  }
+
+  removeNestSprite(nest, animated) {
+    const c = this.nestSprites.get(nest.id);
+    if (!c) return;
+    this.nestSprites.delete(nest.id);
+    this.tweens.killTweensOf([c, c.glow]);
+    if (!animated) return c.destroy();
+    shatter(this, nest.x, nest.y);
+    this.tweens.add({ targets: c, alpha: 0, scale: 0.6, duration: 380, onComplete: () => c.destroy() });
   }
 
   spawnEnemy(type, distance = 0, hpMult = 1) {
@@ -561,6 +616,8 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = [];
     for (const r of [...this.recruits]) this.dismissRecruit(r);
     this.runner = null;
+    for (const nest of this.state.nests) this.removeNestSprite(nest, false);
+    this.state.nests = [];
     this.state.wave = Math.min(WAVES.length, n) - 1;
     this.startWave();
   }
@@ -718,7 +775,7 @@ export class GameScene extends Phaser.Scene {
     const dt = (Math.min(delta, 100) / 1000) * this.speed; // clamp so a tab switch doesn't teleport enemies
     this.clock += dt * 1000;
 
-    if (this.runner) for (const type of this.runner.tick(dt * 1000)) this.spawnEnemy(type, 0, this.waveHpMult);
+    if (this.runner) for (const entry of this.runner.tick(dt * 1000)) this.spawnScheduled(entry);
     this.updatePower(dt * 1000);
 
     for (const e of [...this.enemies]) {
@@ -757,6 +814,7 @@ export class GameScene extends Phaser.Scene {
       earn(this.state, waveBonus(i));
       this.events.emit('grapes-changed', this.state.grapes);
       for (const r of [...this.recruits]) this.dismissRecruit(r);
+      for (const n of collapseNests(this.state)) this.removeNestSprite(n, true);
       this.events.emit('wave-cleared', i);
       if (this.registry.get('autoWave') && this.hasNextWave()) this.autoIn = 3000;
       if (i === WAVES.length - 1 && !this.endless) {

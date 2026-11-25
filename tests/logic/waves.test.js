@@ -16,9 +16,9 @@ describe('waves', () => {
   it('runner releases due spawns', () => {
     const r = createWaveRunner(buildSchedule(wave));
     expect(r.done).toBe(false);
-    expect(r.tick(60)).toEqual(['fly', 'rat']);
+    expect(r.tick(60).map((e) => e.type)).toEqual(['fly', 'rat']);
     expect(r.done).toBe(false);
-    expect(r.tick(200)).toEqual(['fly', 'fly']);
+    expect(r.tick(200).map((e) => e.type)).toEqual(['fly', 'fly']);
     expect(r.done).toBe(true);
     expect(r.tick(100)).toEqual([]);
   });

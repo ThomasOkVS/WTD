@@ -1,5 +1,5 @@
 export function createGameState() {
-  return { grapes: 150, lives: 20, wave: 0, towers: [], buffs: [], status: 'playing' };
+  return { grapes: 150, lives: 20, wave: 0, towers: [], nests: [], buffs: [], status: 'playing' };
 }
 
 export function spend(state, amount) {

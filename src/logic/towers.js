@@ -22,7 +22,7 @@ export function canPlace(state, towerType, pos) {
   if (x < f.minX || x > f.maxX || y < f.minY || y > f.maxY) return { ok: false, reason: 'bounds' };
   if (HUD_ZONES.some((z) => x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1)) return { ok: false, reason: 'bounds' };
   if (distanceToPath(PATH, pos) < PATH_CLEARANCE) return { ok: false, reason: 'path' };
-  if (state.towers.some((t) => near(t, pos, TOWER_SPACING))) return { ok: false, reason: 'occupied' };
+  if ([...state.towers, ...(state.nests ?? [])].some((t) => near(t, pos, TOWER_SPACING))) return { ok: false, reason: 'occupied' };
   if ([...CANDLES, ...BARRELS].some((d) => near(d, pos, DECOR_FOOTPRINT))) return { ok: false, reason: 'decor' };
   if (cfg.unique && state.towers.some((t) => t.type === towerType)) return { ok: false, reason: 'unique' };
   if (state.grapes < cfg.cost) return { ok: false, reason: 'grapes' };

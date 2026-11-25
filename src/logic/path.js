@@ -35,3 +35,19 @@ export function createPath(points) {
 
   return { length, positionAt };
 }
+
+// Arc length along the polyline of the point closest to p (same projection
+// as distanceToPath). Phaser-free.
+export function distanceAlongPath(points, p) {
+  let best = Infinity, along = 0, walked = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const l2 = dx * dx + dy * dy;
+    const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+    const d = Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+    if (d < best) { best = d; along = walked + t * Math.sqrt(l2); }
+    walked += Math.sqrt(l2);
+  }
+  return along;
+}

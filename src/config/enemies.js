@@ -12,3 +12,12 @@ export const ENEMIES = {
 // Pests fight back: global tuning for tower damage and repair pricing.
 // damageMult 0.4: an unrepaired honest build loses ~1 tower by wave 6 and still wins.
 export const SIEGE = { damageMult: 0.4, repairShare: 0.5 };
+
+// Pest nests: a tower destroyed by pests becomes a nest that spawns
+// base + perLevel * level pests during the next wave (src/logic/nests.js).
+// enabled: false is the kill switch (no nests are ever created).
+export const NESTS = {
+  enabled: true,
+  spawn: { cork: 'fly', sommelier: 'corkscrew', decanter: 'corkscrew', thomas: 'rat' },
+  base: 2, perLevel: 2, intervalMs: 1200, delayMs: 2000,
+};

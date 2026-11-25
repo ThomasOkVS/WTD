@@ -19,7 +19,7 @@ export function createWaveRunner(schedule) {
     tick(dtMs) {
       elapsed += dtMs;
       const due = [];
-      while (idx < schedule.length && schedule[idx].atMs <= elapsed) due.push(schedule[idx++].type);
+      while (idx < schedule.length && schedule[idx].atMs <= elapsed) due.push(schedule[idx++]);
       return due;
     },
     get done() {
