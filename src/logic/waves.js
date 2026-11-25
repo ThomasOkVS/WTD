@@ -7,7 +7,7 @@ export function waveBonus(waveIndex) {
 export function buildSchedule(wave) {
   const out = [];
   for (const g of wave.groups) {
-    for (let i = 0; i < g.count; i++) out.push({ atMs: g.delayMs + i * g.intervalMs, type: g.type, hpMult: wave.hpMult ?? 1, speedMult: wave.speedMult ?? 1 });
+    for (let i = 0; i < g.count; i++) out.push({ atMs: g.delayMs + i * g.intervalMs, type: g.type, hpMult: g.hpMult ?? wave.hpMult ?? 1, speedMult: g.speedMult ?? wave.speedMult ?? 1 });
   }
   return out.sort((a, b) => a.atMs - b.atMs); // stable: group order breaks ties
 }
@@ -49,7 +49,8 @@ export const RAMP = { hp: 0.35, count: 0.25, speed: 0.04, speedCap: 1.4, groupCa
 export function waveAt(index) {
   const r = Math.max(0, index + 1 - RAMP_FROM);
   if (r === 0) return { ...WAVES[index], hpMult: 1, speedMult: 1 };
-  const scale = (g) => (g.type === 'monstre' ? g : { ...g, count: Math.min(RAMP.groupCap, Math.round(g.count * (1 + RAMP.count * r))) });
+  // The scripted wave-7 boss is not wave-scaled (demo safety); the Endless boss is.
+  const scale = (g) => (g.type === 'monstre' ? { ...g, hpMult: 1, speedMult: 1 } : { ...g, count: Math.min(RAMP.groupCap, Math.round(g.count * (1 + RAMP.count * r))) });
   let groups;
   if (index < WAVES.length) {
     groups = WAVES[index].groups.map(scale);

@@ -6,10 +6,12 @@ export const ENEMIES = {
   rat: { hp: 140, speed: 95, armour: 0, reward: 10, leakCost: 1, attack: { style: 'chew', reach: 75, damage: 5, biteMs: 500, chewMs: 2000 } },
   // Below enrage.at HP it turns furious (faster, slams more often); while alive
   // it spits summon.count cans behind it every summon.everyMs (scene time).
-  monstre: { hp: 3000, speed: 45, armour: 8, reward: 200, leakCost: 10, splitInto: { type: 'can', count: 8 },
+  // Balance (demo script must win and split the boss): hp/armour stay 2200/6; it is
+  // harder through the 40-damage slam, 8 cans, the furious phase and the summons.
+  monstre: { hp: 2200, speed: 45, armour: 6, reward: 200, leakCost: 10, splitInto: { type: 'can', count: 8 },
     attack: { style: 'slam', reach: 160, damage: 40, cooldownMs: 4000 },
-    enrage: { at: 0.5, speedMult: 1.6, slamCooldownMs: 2500 },
-    summon: { type: 'can', count: 2, everyMs: 7000, firstMs: 5000 } },
+    enrage: { at: 0.5, speedMult: 1.35, slamCooldownMs: 2500 },
+    summon: { type: 'can', count: 2, everyMs: 10000, firstMs: 5000 } },
   can: { hp: 80, speed: 110, armour: 2, reward: 4, leakCost: 1, attack: { style: 'burst', reach: 70, damage: 25 } },
 };
 

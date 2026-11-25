@@ -64,6 +64,11 @@ describe('waveAt (difficulty curve)', () => {
     expect(w.hpMult).toBeCloseTo(1.7);
     expect(w.groups.find((g) => g.type === 'monstre').count).toBe(1);
   });
+  it('the scripted wave-7 boss is not wave-scaled, the Endless boss is', () => {
+    const boss = (i) => buildSchedule(waveAt(i)).find((e) => e.type === 'monstre');
+    expect(boss(6)).toMatchObject({ hpMult: 1, speedMult: 1 });
+    expect(boss(9).hpMult).toBeCloseTo(2.75);
+  });
   it('wave 8 (endless) continues the curve without the boss', () => {
     const w = waveAt(7);
     expect(w.hpMult).toBeCloseTo(2.05);
