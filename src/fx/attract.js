@@ -16,16 +16,16 @@ const MAX_CORKS = 6;
 const SPAWN_MS = 1500;
 const SEQUENCE = ['fly', 'rat', 'corkscrew', 'fly', 'fly', 'corkscrew', 'rat', 'fly', 'corkscrew', 'fly'];
 const PESTS = {
-  fly: { hp: 2, speed: 95 },
-  corkscrew: { hp: 3, speed: 75 },
-  rat: { hp: 4, speed: 62 },
+  fly: { hp: 3, speed: 95 },
+  corkscrew: { hp: 4, speed: 75 },
+  rat: { hp: 5, speed: 62 },
 };
 // Beside the path, clear of the title card (screen centre) and the Play button.
 const TOWERS = [
   { type: 'decanter', x: 170, y: 214, every: 2600, range: 110, light: 90 },
   { type: 'sommelier', x: 146, y: 392, every: 900, range: 150, light: 90 },
-  { type: 'thomas', x: 330, y: 566, every: 5200, range: 190, light: 130, tint: 0xffd36b },
-  { type: 'cork', x: 1122, y: 384, every: 650, range: 190, light: 90 },
+  { type: 'thomas', x: 330, y: 566, every: 4200, range: 190, light: 130, tint: 0xffd36b },
+  { type: 'cork', x: 1122, y: 384, every: 900, range: 150, light: 90 },
 ];
 const WASH_EVERY = 17000;
 const SLOW = 0.45;
@@ -38,7 +38,7 @@ const PEST_SCALE = 1.15; // a touch bigger than in game: reads from the back of 
 // they draw only in the zoomed, drifting world camera). lighting: what
 // drawCellar returned (one light per tower). Stops itself on shutdown.
 export function startAttract(scene, { ui, lighting } = {}) {
-  if (!ATTRACT_ENABLED) return { stop() {} };
+  if (!ATTRACT_ENABLED) return { stop() {}, stats: null };
   // The title makes its world camera ignore anything added after create;
   // own() overrides that: visible to every camera except the UI one.
   const own = (go) => {
@@ -100,6 +100,7 @@ export function startAttract(scene, { ui, lighting } = {}) {
     .setDepth(2650).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD));
 
   let clock = 0;
+  const stats = { kills: 0, recruits: 0, leaks: 0, corks: 0, rings: 0, beams: 0, washes: 0 };
   let spawnIn = 300;
   let seq = 0;
   let washIn = 6000;
@@ -157,6 +158,7 @@ export function startAttract(scene, { ui, lighting } = {}) {
     });
     if (p.hp <= 0) {
       splash(scene, p.x, p.y);
+      stats.kills++;
       release(p);
     }
   }
@@ -196,6 +198,7 @@ export function startAttract(scene, { ui, lighting } = {}) {
       const c = corks.find((k) => !k.visible);
       if (!c) return false;
       const gen = p.gen;
+      stats.corks++;
       corkPop(scene, t.x, t.y - 22);
       recoil(t);
       c.setPosition(t.x, t.y - 22).setVisible(true);
@@ -207,18 +210,20 @@ export function startAttract(scene, { ui, lighting } = {}) {
         },
       });
     } else if (t.type === 'decanter') {
+      stats.rings++;
       wineRing(scene, t.x, t.y, t.range);
       recoil(t);
       for (const q of pests) {
-        if (q.state === 'walk' && Math.hypot(q.x - t.x, q.y - t.y) <= t.range) hit(q, 2);
+        if (q.state === 'walk' && Math.hypot(q.x - t.x, q.y - t.y) <= t.range) hit(q, 1);
       }
     } else if (t.type === 'sommelier') {
+      stats.beams++;
       beam(beams[0], 0x8a1c2b, t.x, t.y - 10, p.x, p.y);
-      p.slowUntil = clock + 1600;
+      p.slowUntil = clock + 1600; // slow only: leaves pests for Thomas to recruit
       tintFor(p);
-      hit(p, 1);
     } else if (t.type === 'thomas') {
       beam(beams[1], GOLD, t.x, t.y - 20, p.x, p.y);
+      stats.recruits++;
       p.state = 'recruit';
       p.dir = -1;
       p.recruitLeft = 2600;
@@ -229,9 +234,10 @@ export function startAttract(scene, { ui, lighting } = {}) {
   }
 
   function pulseWash() {
+    stats.washes++;
     scene.tweens.killTweensOf([washRed, washBlue]);
-    scene.tweens.add({ targets: washRed, alpha: { from: 0.32, to: 0 }, duration: 400, yoyo: true, repeat: 3, ease: 'Sine.easeInOut', onComplete: () => washRed.setAlpha(0) });
-    scene.tweens.add({ targets: washBlue, alpha: { from: 0, to: 0.32 }, duration: 400, yoyo: true, repeat: 3, ease: 'Sine.easeInOut', onComplete: () => washBlue.setAlpha(0) });
+    scene.tweens.add({ targets: washRed, alpha: { from: 0.32, to: 0 }, duration: 400, yoyo: true, repeat: 1, ease: 'Sine.easeInOut', onComplete: () => washRed.setAlpha(0) });
+    scene.tweens.add({ targets: washBlue, alpha: { from: 0, to: 0.32 }, duration: 400, yoyo: true, repeat: 1, ease: 'Sine.easeInOut', onComplete: () => washBlue.setAlpha(0) });
   }
 
   function update(_time, delta) {
@@ -252,6 +258,7 @@ export function startAttract(scene, { ui, lighting } = {}) {
         }
         p.d += (p.speed * (p.slowUntil ? 1 - SLOW : 1) * dt) / 1000;
         if (p.d >= path.length) {
+          stats.leaks++;
           release(p); // no lives: it just slips into the dark
           continue;
         }
@@ -302,5 +309,5 @@ export function startAttract(scene, { ui, lighting } = {}) {
     objects.length = 0;
   }
   scene.events.once('shutdown', stop);
-  return { stop };
+  return { stop, stats };
 }

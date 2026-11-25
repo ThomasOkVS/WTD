@@ -26,7 +26,7 @@ export class TitleScene extends Phaser.Scene {
     const cam = hdCamera(this, ZOOM, 600, 350);
     const ui = (this.uiCam = this.cameras.add(0, 0, 1280 * HD, 720 * HD).setZoom(HD).centerOn(640, 360));
     ui.ignore(backdrop);
-    startAttract(this, { ui, lighting }); // scripted battle behind the card; tears itself down on shutdown
+    this.attract = startAttract(this, { ui, lighting }); // scripted battle behind the card; tears itself down on shutdown
     // Chain legs on PAN_COMPLETE: a pan started inside the pan's own update
     // callback is wiped by effectComplete() right after (Phaser 4).
     let toRight = true;
