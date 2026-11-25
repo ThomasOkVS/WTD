@@ -14,6 +14,7 @@ export class EndScene extends Phaser.Scene {
     this.result = data.result || 'lost';
     this.wave = data.wave || 0;
     this.kills = data.kills ?? null;
+    this.leaving = false; // scene instances are reused across runs
   }
 
   create() {

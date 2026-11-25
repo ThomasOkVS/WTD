@@ -13,6 +13,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    this.starting = false; // scene instances are reused
     drawCellar(this); // lit-cellar backdrop
     const backdrop = this.children.list.slice();
 
@@ -21,11 +22,16 @@ export class TitleScene extends Phaser.Scene {
     const cam = this.cameras.main.setBounds(0, 0, 1280, 720).setZoom(ZOOM).centerOn(600, 350);
     const ui = (this.uiCam = this.cameras.add(0, 0, 1280, 720));
     ui.ignore(backdrop);
-    const drift = (toRight) =>
-      cam.pan(toRight ? 690 : 590, toRight ? 375 : 345, 11000, 'Sine.easeInOut', true, (_c, p) => {
-        if (p === 1) drift(!toRight);
-      });
-    drift(true);
+    // Chain legs on PAN_COMPLETE: a pan started inside the pan's own update
+    // callback is wiped by effectComplete() right after (Phaser 4).
+    let toRight = true;
+    const drift = () => {
+      cam.pan(toRight ? 690 : 590, toRight ? 375 : 345, 11000, 'Sine.easeInOut', true);
+      toRight = !toRight;
+    };
+    cam.on(Phaser.Cameras.Scene2D.Events.PAN_COMPLETE, drift);
+    this.events.once('shutdown', () => cam.off(Phaser.Cameras.Scene2D.Events.PAN_COMPLETE, drift));
+    drift();
 
     const uiObjects = this.buildLabel();
     cam.ignore(uiObjects);

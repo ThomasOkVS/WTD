@@ -29,6 +29,7 @@ export class HUDScene extends Phaser.Scene {
 
   create() {
     this.game$ = this.scene.get('Game').events;
+    this.input.enabled = true; // re-enable after a previous run's game-over
     this.listeners = [];
     this.selected = null;
     this.thomasPlaced = false;
@@ -52,7 +53,10 @@ export class HUDScene extends Phaser.Scene {
     this.listen('tower-upgraded', this.onUpgraded);
     this.listen('upgrade-refused', this.onUpgradeRefused);
     this.listen('power-changed', this.setPower);
-    this.listen('game-over', () => this.cameras.main.fadeOut(400, 18, 10, 13));
+    this.listen('game-over', () => {
+      this.input.enabled = false; // nothing clickable during the fade-out
+      this.cameras.main.fadeOut(400, 18, 10, 13);
+    });
 
     this.input.keyboard.on('keydown-ESC', this.closeUpgrade, this);
     this.events.once('shutdown', () => {
@@ -261,6 +265,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   banner(title, sub) {
+    this.bannerChain?.stop();
     if (this.bannerBox) this.bannerBox.destroy();
     const b = this.add.container(640, 236);
     const p = panel(this, 0, 0, 340, 92);
@@ -269,7 +274,7 @@ export class HUDScene extends Phaser.Scene {
     b.add([p, t, s]);
     this.bannerBox = b;
     b.setAlpha(0).setScale(0.92);
-    this.tweens.chain({
+    this.bannerChain = this.tweens.chain({
       targets: b,
       tweens: [
         { alpha: 1, scale: 1, duration: 260, ease: 'Back.easeOut' },
@@ -329,8 +334,17 @@ export class HUDScene extends Phaser.Scene {
       this.tweens.add({ targets: c, scale: 0.93, duration: 70, yoyo: true });
       this.emit('activate-power');
     });
-    hit.on('pointerover', () => this.power.ready && this.tweens.add({ targets: glow, alpha: 0.7, duration: 160 }));
-    hit.on('pointerout', () => this.tweens.add({ targets: glow, alpha: this.power.ready ? 0.35 : 0, duration: 160 }));
+    // hover only touches the glow when idle-ready; the active pulse owns it otherwise
+    hit.on('pointerover', () => {
+      if (!this.power.ready || this.power.active) return;
+      this.tweens.killTweensOf(glow);
+      this.tweens.add({ targets: glow, alpha: 0.7, duration: 160 });
+    });
+    hit.on('pointerout', () => {
+      if (this.power.active) return;
+      this.tweens.killTweensOf(glow);
+      this.tweens.add({ targets: glow, alpha: this.power.ready ? 0.35 : 0, duration: 160 });
+    });
     c.add([glow, disc, can, cover, label, hit]);
     this.powerUi = { c, glow, can, cover, r };
     this.power = { ready: false, active: false, fraction: 0 };
@@ -346,13 +360,13 @@ export class HUDScene extends Phaser.Scene {
     if (!ready && fraction < 1) {
       // dark wedge over the not-yet-charged part, sweeping clockwise from 12
       const start = -Math.PI / 2 + Math.PI * 2 * fraction;
-      cover.fillStyle(0x120a0d, 0.8).slice(0, 0, r - 1, start, Math.PI * 1.5, false).fillPath();
+      cover.fillStyle(0x120a0d, 0.5).slice(0, 0, r - 1, start, Math.PI * 1.5, false).fillPath();
       if (fraction > 0) {
         // charged part of the rim glows amber
         cover.lineStyle(4, COLORS.amber, 1).beginPath().arc(0, 0, r - 1, -Math.PI / 2, start, false).strokePath();
       }
     }
-    can.setTint(ready || active ? 0xffffff : 0xb8aaa0);
+    can.setTint(ready || active ? 0xffffff : 0xe0d4cc);
     if (ready && !wasReady) {
       this.tweens.killTweensOf(glow);
       this.tweens.add({ targets: glow, alpha: 0.35, duration: 250 });
@@ -381,6 +395,8 @@ export class HUDScene extends Phaser.Scene {
 
     const c = this.add.container(x, y);
     const bg = panel(this, 0, 0, W, H);
+    bg.setInteractive(); // clicks on the panel body are swallowed, not 'outside'
+    bg.on('pointerdown', () => {});
     const title = this.add.text(0, -54, '', serif(19)).setOrigin(0.5);
     const level = this.add.text(0, -30, '', body(17, PALETTE.burgundy)).setOrigin(0.5);
     const rule = this.add.rectangle(0, -14, W - 70, 1.5, COLORS.burgundy, 0.55);
