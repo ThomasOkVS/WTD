@@ -700,19 +700,14 @@ function towerThomas(ctx, w, h) {
     rim: P.amber, vest: '#2a1216', tie: P.candleGold, apron: P.burgundy, apronLo: '#4a0d18', hair: '#5a3a22',
     tastevin: true, moustache: true, halo: true,
   });
-  // THOMAS name plate on the pedestal front
+  // gold name plate on the pedestal front
   const cx = w / 2, y = h - 8;
   rrect(ctx, cx - 17, y - 4, 34, 9, 2);
   ctx.fillStyle = linear(ctx, 0, y - 4, 0, y + 5, [[0, '#ffe1a0'], [0.5, P.candleGold], [1, '#8a6a3e']]);
   ctx.fill();
   ctx.strokeStyle = '#5a4022';
   ctx.lineWidth = 0.8;
-  ctx.stroke();
-  ctx.fillStyle = P.ink;
-  ctx.font = '700 6.5px Cinzel, serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('THOMAS', cx, y + 0.8);
+  ctx.stroke(); // plain gold plate: his name is a real text banner on the board (Tower#nameTag)
 }
 
 function towerCork(ctx, w, h) {

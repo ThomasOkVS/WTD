@@ -168,7 +168,10 @@ export class GameScene extends Phaser.Scene {
     }
     const placed = placeTower(this.state, this.selectedType, pos);
     const built = new Tower(this, placed);
-    built.light = this.lighting.addLight(pos.x, pos.y, 90);
+    // Thomas gets a wider gold spotlight so he reads as the star of the board
+    built.light = placed.type === 'thomas'
+      ? this.lighting.addLight(pos.x, pos.y, 130, 0xffd36b)
+      : this.lighting.addLight(pos.x, pos.y, 90);
     this.towers.push(built);
     this.events.emit('grapes-changed', this.state.grapes);
     play('place');
