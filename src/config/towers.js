@@ -33,6 +33,11 @@ export const TOWERS = {
 // One short stat line per tower, built from (merged, buffed) stats so it
 // follows upgrades, buffs and retunes. Used by the HUD tooltips.
 export function statLine(s) {
+  const line = statCore(s);
+  return s.maxHp ? `${line} · ${s.maxHp} HP` : line;
+}
+
+function statCore(s) {
   const r = Math.round(s.range);
   const num = (n) => (Math.round(n * 10) / 10).toString();
   switch (s.type) {
