@@ -55,6 +55,7 @@ export class HUDScene extends Phaser.Scene {
     this.createBar();
     this.createPower();
     this.createMute();
+    this.createPauseBtn();
     this.toast = this.createToast();
 
     this.listen('grapes-changed', this.onGrapes);
@@ -80,11 +81,10 @@ export class HUDScene extends Phaser.Scene {
       this.cameras.main.fadeOut(400, 18, 10, 13);
     });
 
-    this.input.keyboard.on('keydown-ESC', this.closeUpgrade, this);
+    // Esc is Game's (onEsc): cancel placement, then close this panel, then pause.
     this.events.once('shutdown', () => {
       for (const [name, fn] of this.listeners) this.game$.off(name, fn, this);
       this.listeners = [];
-      this.input.keyboard.off('keydown-ESC', this.closeUpgrade, this);
     });
     // first styling after the entrance slide so the two don't fight over y
     this.time.delayedCall(480, () => this.refreshCards(true));
@@ -151,6 +151,41 @@ export class HUDScene extends Phaser.Scene {
     hit.on('pointerout', () => { this.muteUi.hover = false; this.drawMute(); });
     this.drawMute();
     enter(this, c, { dy: -24, delay: 120, duration: 280 });
+  }
+
+  // Round icon button in the mute button's style (pause, speed). draw(g, hover) paints the icon.
+  roundBtn(x, delay, tipTitle, tipLine, onClick, drawIcon) {
+    const c = this.add.container(x, 45);
+    const g = this.add.graphics();
+    const hit = this.add.zone(0, 0, 40, 40).setInteractive({ useHandCursor: true });
+    c.add([g, hit]);
+    const ui = { c, g, hover: false };
+    ui.draw = () => {
+      g.clear();
+      g.fillStyle(0x120a0d, 0.55).fillCircle(1, 3, 19);
+      g.fillStyle(ui.hover ? 0x5a1420 : 0x3d0d14, 1).fillCircle(0, 0, 19);
+      g.lineStyle(2, COLORS.candleGold, ui.hover ? 1 : 0.85).strokeCircle(0, 0, 19);
+      drawIcon(g, ui);
+    };
+    hit.on('pointerdown', () => {
+      play('click');
+      this.tweens.add({ targets: c, scale: 0.9, duration: 70, yoyo: true });
+      onClick();
+    });
+    hit.on('pointerover', () => { ui.hover = true; ui.draw(); this.showTip(x, 80 + 90, tipTitle, tipLine); });
+    hit.on('pointerout', () => { ui.hover = false; ui.draw(); this.hideTip(); });
+    ui.draw();
+    enter(this, c, { dy: -24, delay, duration: 280 });
+    return ui;
+  }
+
+  createPauseBtn() {
+    this.pauseUi = this.roundBtn(292, 150, 'Pause (P)', 'Resume, restart or go back to the title.', () => {
+      this.hideTip(true);
+      this.emit('pause');
+    }, (g) => {
+      g.fillStyle(COLORS.candleGold, 1).fillRect(-7, -8, 5, 16).fillRect(2, -8, 5, 16);
+    });
   }
 
   drawMute() {

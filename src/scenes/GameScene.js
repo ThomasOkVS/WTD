@@ -50,6 +50,7 @@ export class GameScene extends Phaser.Scene {
     this.kills = 0;
     this.recruits = [];
     this.tastingOpen = false;
+    this.pauseOpen = false;
     this.powerUp = createPowerUp(POWER); // starts charged: demo it right away
     this.powerEmitAt = 0;
     this.heartbeatIn = 0;
@@ -68,6 +69,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('repair-tower', this.repair, this);
     this.events.on('activate-power', this.activatePower, this);
     this.events.on('tasting-picked', this.onTastingPicked, this);
+    this.events.on('pause', this.onPauseClicked, this);
     this.input.keyboard.on('keydown-ESC', this.onEsc, this);
     // Presenter keys: work in the production build too, no UI.
     this.input.keyboard.on('keydown', this.onDemoKey, this);
@@ -177,8 +179,31 @@ export class GameScene extends Phaser.Scene {
     this.selectTower(this.selectedType); // deselect after building
   }
 
+  // Esc cancels first (placement, then the upgrade panel) and pauses only when nothing is open.
   onEsc() {
+    if (this.selectedType) return this.selectTower(this.selectedType);
+    const hud = this.scene.get('HUD');
+    if (hud?.upgradeUi) return hud.closeUpgrade();
+    this.openPause();
+  }
+
+  onPauseClicked() {
+    this.scene.get('HUD')?.closeUpgrade(true);
     if (this.selectedType) this.selectTower(this.selectedType);
+    this.openPause();
+  }
+
+  // ---------- pause menu ----------
+  openPause(mode = 'pause') {
+    if (this.pauseOpen || this.tastingOpen || (this.ending && mode === 'pause')) return;
+    this.pauseOpen = true;
+    this.scene.launch('Pause', { mode });
+    this.scene.pause();
+  }
+
+  resumeFromPause() {
+    this.pauseOpen = false;
+    this.scene.resume();
   }
 
   // Same type again (or ESC) toggles the selection off.
@@ -404,7 +429,8 @@ export class GameScene extends Phaser.Scene {
     // digits by physical key (AZERTY needs Shift for 1-7), letters by character
     const digit = /^(?:Digit|Numpad)([1-7])$/.exec(e.code);
     const k = (e.key || '').toLowerCase();
-    if (digit) this.jumpToWave(Number(digit[1]));
+    if (k === 'p') this.openPause();
+    else if (digit) this.jumpToWave(Number(digit[1]));
     else if (k === 'b') this.spawnEnemy('monstre');
     else if (k === 'g') {
       earn(this.state, 500);
@@ -654,6 +680,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('repair-tower', this.repair, this);
     this.events.off('activate-power', this.activatePower, this);
     this.events.off('tasting-picked', this.onTastingPicked, this);
+    this.events.off('pause', this.onPauseClicked, this);
     this.input.keyboard.off('keydown-ESC', this.onEsc, this);
     this.input.keyboard.off('keydown', this.onDemoKey, this);
     this.input.off('pointermove', this.onPointerMove, this);
@@ -661,6 +688,7 @@ export class GameScene extends Phaser.Scene {
     this.input.setDefaultCursor('default');
     this.scene.stop('HUD');
     this.scene.stop('Tasting');
+    this.scene.stop('Pause');
     for (const r of this.recruits) r.destroy();
     this.recruits = [];
     for (const e of this.enemies) e.destroy();

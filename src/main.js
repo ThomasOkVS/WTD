@@ -5,6 +5,7 @@ import { GameScene } from './scenes/GameScene.js';
 import { EndScene } from './scenes/EndScene.js';
 import { HUDScene } from './scenes/HUDScene.js';
 import { TastingScene } from './scenes/TastingScene.js';
+import { PauseScene } from './scenes/PauseScene.js';
 import { toggleMuted, isMuted } from './fx/sound.js';
 
 const game = new Phaser.Game({
@@ -17,7 +18,7 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   // HUD after Game: array order is render order, so the HUD draws on top.
   // Tasting after HUD: the modal draws (and takes input) above both.
-  scene: [BootScene, TitleScene, GameScene, HUDScene, TastingScene, EndScene],
+  scene: [BootScene, TitleScene, GameScene, HUDScene, TastingScene, PauseScene, EndScene],
 });
 
 if (import.meta.env.DEV) Object.assign(window, { __game: game, __isMuted: isMuted });
