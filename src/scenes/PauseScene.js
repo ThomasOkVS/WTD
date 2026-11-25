@@ -101,7 +101,7 @@ export class PauseScene extends Phaser.Scene {
         chip.fillStyle(0x5a1520, 1).fillRoundedRect(x, y - 15, w, 30, 7)
           .lineStyle(1.5, 0xffd36b, 0.9).strokeRoundedRect(x, y - 15, w, 30, 7);
         kt.setPosition(x + w / 2, y + 1);
-        const label = this.add.text(x + 140, y, what, body(19, PALETTE.ink)).setOrigin(0, 0.5);
+        const label = this.add.text(x + 160, y, what, body(19, PALETTE.ink)).setOrigin(0, 0.5);
         c.add([chip, kt, label]);
       });
     };

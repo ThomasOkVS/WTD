@@ -44,7 +44,7 @@ Presenter shortcuts. They work in the dev and production builds and have no on-s
 | `R` | Recharge Taureau Rouge (when it is not running) |
 | `D` | Every tower drops to 25% HP ("The pests bite back!"): puts Repair and destruction on cue |
 | `M` | Mute / unmute |
-| `P` / `Esc` | Pause: Resume, Restart, Back to title (`Esc` first cancels a placement or closes the upgrade panel) |
+| `P` / `Esc` | Pause: Resume, Controls (button cheat sheet), Restart, Back to title (`Esc` first cancels a placement or closes the upgrade panel) |
 | `F` | 2× speed (toggle; every new run starts at 1×) |
 | `L` | Projector mode: brighter cellar for big screens (remembered) |
 
