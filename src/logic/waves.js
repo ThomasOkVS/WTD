@@ -46,7 +46,7 @@ export function describeWave(wave) {
 const RAMP_FROM = 5; // 0-based index of wave 6
 export const RAMP = { hp: 0.35, count: 0.25, speed: 0.04, speedCap: 1.4, groupCap: 30 };
 // Scripted waves 6-7 ramp gentler (demo safety: a 6-9 tower presenter build must win).
-export const SCRIPTED_RAMP = { hp: 0.15, count: 0.1 };
+export const SCRIPTED_RAMP = { hp: 0, count: 0 }; // 15:36 demo safety: live runs with a 9-tower build still lost wave 7 at 0.15/0.1
 
 export function waveAt(index) {
   const r = Math.max(0, index + 1 - RAMP_FROM);

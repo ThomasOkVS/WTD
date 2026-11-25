@@ -53,15 +53,15 @@ describe('waveAt (difficulty curve)', () => {
   it('waves 1-5 are unchanged', () => {
     for (let i = 0; i < 5; i++) expect(waveAt(i)).toEqual({ ...WAVES[i], hpMult: 1, speedMult: 1 });
   });
-  it('wave 6 ramps hp, speed and counts', () => {
+  it('scripted wave 6 keeps its hp and counts (demo safety), only speed ramps', () => {
     const w = waveAt(5);
-    expect(w.hpMult).toBeCloseTo(1.15);
+    expect(w.hpMult).toBeCloseTo(1);
     expect(w.speedMult).toBeCloseTo(1.04);
-    WAVES[5].groups.forEach((g, i) => expect(w.groups[i].count).toBe(Math.min(30, Math.round(g.count * 1.1))));
+    WAVES[5].groups.forEach((g, i) => expect(w.groups[i].count).toBe(g.count));
   });
   it('wave 7 keeps a single boss', () => {
     const w = waveAt(6);
-    expect(w.hpMult).toBeCloseTo(1.3);
+    expect(w.hpMult).toBeCloseTo(1);
     expect(w.groups.find((g) => g.type === 'monstre').count).toBe(1);
   });
   it('the scripted wave-7 boss is not wave-scaled, the Endless boss is', () => {
@@ -86,7 +86,7 @@ describe('waveAt (difficulty curve)', () => {
   });
   it('buildSchedule carries hpMult and speedMult', () => {
     const e = buildSchedule(waveAt(6))[0];
-    expect(e.hpMult).toBeCloseTo(1.3);
+    expect(e.hpMult).toBeCloseTo(1);
     expect(e.speedMult).toBeCloseTo(1.08);
     expect(buildSchedule(WAVES[0])[0].hpMult).toBe(1);
   });
