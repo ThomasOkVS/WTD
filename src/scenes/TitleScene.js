@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { bindTextureGridKey } from '../art/textureGrid.js';
 import { drawCellar } from '../fx/cellar.js';
-import { initSound, startMusic } from '../fx/sound.js';
+import { initSound, startMusic, isSoundReady } from '../fx/sound.js';
 import { serif, body, panel, button, enter } from '../ui/kit.js';
 
 const ZOOM = 1.12;
@@ -43,6 +43,29 @@ export class TitleScene extends Phaser.Scene {
     cam.fadeIn(400, 18, 10, 13);
     ui.fadeIn(400, 18, 10, 13);
     bindTextureGridKey(this);
+    this.setupSoundUnlock();
+  }
+
+  // Browsers block audio until the first user gesture, so music can't start on
+  // load. Start it on the first click or key press anywhere on the title.
+  setupSoundUnlock() {
+    if (isSoundReady()) return;
+    const hint = this.add.text(640, 690, 'Click anywhere for sound', body(18, PALETTE.candleGold)).setOrigin(0.5);
+    hint.setShadow(0, 2, '#120a0d', 6, false, true);
+    enter(this, hint, { duration: 300, delay: 700, alpha: 0.7 });
+    const unlock = () => {
+      this.input.off('pointerdown', unlock);
+      this.input.keyboard?.off('keydown', unlock);
+      initSound();
+      startMusic();
+      this.tweens.add({ targets: hint, alpha: 0, duration: 400, onComplete: () => hint.destroy() });
+    };
+    this.input.on('pointerdown', unlock);
+    this.input.keyboard?.on('keydown', unlock);
+    this.events.once('shutdown', () => {
+      this.input.off('pointerdown', unlock);
+      this.input.keyboard?.off('keydown', unlock);
+    });
   }
 
   // The title is a wine label: parchment, double border, Cinzel name.

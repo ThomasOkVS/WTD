@@ -60,7 +60,7 @@ function playSample(key, t, opts) {
   return true;
 }
 
-const MIN_GAP_MS = { hit: 40, cork: 30, splash: 60, kill: 40, place: 40, click: 30, nope: 80, leak: 80, shatter: 80, power: 200, wave: 400, win: 1000, heartbeat: 200 };
+const MIN_GAP_MS = { hit: 40, cork: 30, splash: 60, kill: 40, place: 40, click: 30, nope: 80, leak: 80, shatter: 80, power: 200, wave: 400, win: 1000, heartbeat: 200, pour: 150 };
 
 export function initSound() {
   try {
@@ -94,6 +94,7 @@ export function setMuted(m) {
   try { if (master) master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.02); } catch (e) { /* ignore */ }
 }
 export function isMuted() { return muted; }
+export function isSoundReady() { return ctx !== null; }
 export function toggleMuted() { setMuted(!muted); return muted; }
 
 // ---- primitives ----
@@ -166,6 +167,12 @@ const SFX = {
     noise(t, 0.4, 0.15, { f0: 300, f1: 1500, attack: 0.2 });
   },
   click(t) { tone('square', 900, 700, t, 0.025, 0.12); },
+  // Sommelier: a soft wine "pour" — a short liquid swish plus two little glugs.
+  pour(t) {
+    noise(t, 0.22, 0.22, { type: 'bandpass', f0: 700, f1: 1600, q: 2.5, attack: 0.03 });
+    tone('sine', 300 * rnd(0.95, 1.05), 520, t + 0.04, 0.06, 0.18);
+    tone('sine', 340 * rnd(0.95, 1.05), 600, t + 0.12, 0.05, 0.14);
+  },
   power(t) {
     noise(t, 0.5, 0.35, { type: 'bandpass', f0: 300, f1: 3500, q: 1, attack: 0.15 });
     tone('sawtooth', 120, 480, t, 0.45, 0.2);

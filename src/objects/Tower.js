@@ -70,6 +70,7 @@ export class Tower {
     if (s.type === 'sommelier') {
       // Slow instead of damage: a quick wine "pour" streak to the target.
       target.slow(s.slow, s.slowMs, now);
+      play('pour');
       const g = this.scene.add.graphics().setDepth(1999);
       g.lineStyle(3, 0x8a1c2b, 0.8).lineBetween(s.x, s.y - 10, target.x, target.y);
       this.scene.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
