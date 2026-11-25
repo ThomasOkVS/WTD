@@ -27,6 +27,7 @@
 
 ## Global Constraints
 
+- **The session starts in the main folder `C:\Users\Thoma\dev\WTD`, which the projector session is using. Do Task 0 first and never edit, build, run tests or start a dev server there.** After Task 0, every file path, command and dev server runs in `C:\Users\Thoma\dev\WTD-feedback`. Use absolute paths, and prefix shell commands with `cd /c/Users/Thoma/dev/WTD-feedback &&` (Bash) or `Set-Location C:\Users\Thoma\dev\WTD-feedback;` (PowerShell).
 - Work and commit on branch `feedback-2` in the worktree. Never push `feedback-2` to `main` before Task 7.
 - Time-box: feature work stops at **14:45**, and Task 7 (merge) must be done by **15:15**. The task order is the priority order: if time runs short, skip Endless (Task 6), then Sell (Task 5).
 - Phaser 4 APIs only: use the project skills in `.claude/skills/` (`scenes`, `input-keyboard-mouse-touch`, `time-and-timers`, `tweens`, `text-and-bitmaptext`). Don't write Phaser 3 from memory.
@@ -47,6 +48,21 @@
 5. **Selling Thomas:** his aura, recruits, name tag (if the projector work landed) and light go with him, and he can be built again (`thomasPlaced` resets). Task 5 Step 5.
 
 ---
+
+### Task 0: Set up the worktree (the agent does this; the user does nothing)
+
+- [ ] **Step 1: Create it from the main folder.** If `C:\Users\Thoma\dev\WTD-feedback` already exists and is on `feedback-2`, skip to Step 2.
+  ```bash
+  cd /c/Users/Thoma/dev/WTD && git fetch origin && git worktree add ../WTD-feedback -b feedback-2 origin/main
+  ```
+  Don't run `git checkout`, `git switch`, `git stash` or `git reset` in `C:\Users\Thoma\dev\WTD`: the projector session is working there.
+- [ ] **Step 2: Install and check it.**
+  ```bash
+  cd /c/Users/Thoma/dev/WTD-feedback && npm install && npm test && git branch --show-current
+  ```
+  Expected: tests pass, and the branch prints `feedback-2`.
+- [ ] **Step 3: Start the dev server from the worktree** (`npm run dev` in `C:\Users\Thoma\dev\WTD-feedback`, in the background). Note the port it prints, most likely 5174, and use that URL for every screenshot. Port 5173 belongs to the projector session.
+- [ ] **Step 4:** Read `CLAUDE.md` and this plan **from the worktree**, so you work on the same files you edit.
 
 ### Task 1: Nerf Thomas
 
@@ -288,4 +304,12 @@ The projector-polish session pushes straight to `main` from the main folder whil
   - `7` → Keep pouring → wave 8
   - `L` (projector on)
 - [ ] **Step 4:** `git push origin HEAD:main` (fast-forward; if it's rejected because main moved again, repeat from Step 1). Watch the deploy (`gh run list --limit 1`), then run the README demo script on https://thomasokvs.github.io/WTD/.
-- [ ] **Step 5:** Update `docs/superpowers/HANDOVER.md` "Where things stand" with what shipped and what was cut, and update the README demo script if Endless or the new keys change it. Commit and push to main.
+- [ ] **Step 5:** Update `docs/superpowers/HANDOVER.md` "Where things stand" with what shipped and what was cut, and update the README demo script if Endless or the new keys change it. Commit and `git push origin HEAD:main`.
+- [ ] **Step 6: Clean up.**
+  - Stop this worktree's dev server.
+  - Tell the projector session (or the user, if you can't message it) that `feedback-2` is merged into `main`. It should run `git pull` and then its Task 4.
+  - Remove the worktree:
+    ```bash
+    cd /c/Users/Thoma/dev/WTD && git worktree remove ../WTD-feedback && git branch -d feedback-2
+    ```
+    If removal fails because a process still holds files, leave it and say so. It's harmless.
