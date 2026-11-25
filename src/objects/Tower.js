@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { pickTarget } from '../logic/combat.js';
 import { towerStats, auraMult } from '../logic/towers.js';
 import { applyBuffs } from '../logic/buffs.js';
@@ -29,6 +30,32 @@ export class Tower {
       this.auraRing = scene.add.circle(x, y, this.stats.auraRange).setStrokeStyle(2, 0xffd36b, 0.3).setDepth(2540).setAlpha(0);
       scene.tweens.add({ targets: this.auraRing, alpha: { from: 1, to: 0.55 }, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
+    // HP bar: hidden at full HP, shown once a pest has hit it
+    this.hpBar = scene.add.graphics().setDepth(y + 21);
+    this.drawHp();
+  }
+
+  drawHp() {
+    const max = towerStats(this.placed).maxHp;
+    const f = Math.max(0, Math.min(1, this.placed.hp / max));
+    const g = this.hpBar.clear();
+    if (f >= 1 || this.dead) return g.setVisible(false);
+    g.setVisible(true);
+    const { x, y } = this.stats;
+    const w = 36, h = 4, top = y - 44; // just above the sprite's head (64 px texture, foot at y + 20)
+    g.fillStyle(0x120a0d, 0.85).fillRect(x - w / 2 - 1, top - 1, w + 2, h + 2);
+    g.fillStyle(f > 0.5 ? 0x8fd16a : f > 0.25 ? 0xffb35c : 0xd01a3a, 1).fillRect(x - w / 2, top, w * f, h);
+  }
+
+  // 80 ms red flash on every hit (Phaser 4: tint colour and tint mode are separate).
+  hitFlash() {
+    const sp = this.sprite;
+    if (!sp.active) return;
+    sp.setTint(0xff3030).setTintMode(Phaser.TintModes.FILL);
+    this.flashTimer?.remove();
+    this.flashTimer = this.scene.time.delayedCall(80, () => {
+      if (sp.active) sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+    });
   }
 
   // Quiet stat recompute (after a Wine Tasting buff).
@@ -38,6 +65,7 @@ export class Tower {
 
   refresh() {
     this.recompute();
+    this.drawHp();
     this.scene.tweens.add({ targets: this.sprite, scale: 1.2, duration: 120, yoyo: true, ease: 'Sine.easeOut' });
   }
 
@@ -114,7 +142,10 @@ export class Tower {
   }
 
   destroy() {
+    this.flashTimer?.remove();
+    this.scene.tweens.killTweensOf(this.sprite);
     this.sprite.destroy();
+    this.hpBar.destroy();
     this.auraRing?.destroy();
   }
 }

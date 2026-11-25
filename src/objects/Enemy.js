@@ -1,5 +1,6 @@
 import { ENEMIES } from '../config/enemies.js';
 import { applyDamage } from '../logic/combat.js';
+import { createAttacker } from '../logic/siege.js';
 
 const GOLD = 0xffd36b;
 
@@ -22,6 +23,12 @@ export class Enemy {
     this.barW = this.boss ? 84 : 28;
     this.slowFactor = 1;
     this.slowUntil = 0;
+    // pests fight back: attack state, chew hold and cosmetic offsets (lunge / wobble)
+    this.attacker = cfg.attack ? createAttacker(cfg.attack) : null;
+    this.holding = false;
+    this.offX = 0;
+    this.offY = 0;
+    this.rotOff = 0;
 
     const p = scene.path.positionAt(distance);
     this.x = p.x;
@@ -37,6 +44,7 @@ export class Enemy {
   // Thomas Recruit: turns gold, walks back towards the entrance.
   recruit() {
     this.recruited = true;
+    this.holding = false; // a rat recruited mid-chew lets go and walks back
     this.slowFactor = 1;
     this.sprite.setTint(GOLD);
     if (this.light) this.scene.lighting.removeLight(this.light);
@@ -52,11 +60,12 @@ export class Enemy {
   update(dt, now) {
     if (this.slowFactor < 1 && now >= this.slowUntil) this.slowFactor = 1;
     const dir = this.recruited ? -1 : 1;
-    this.distance += dir * this.speed * this.slowFactor * dt;
+    if (!this.holding || this.recruited) this.distance += dir * this.speed * this.slowFactor * dt;
     const p = this.scene.path.positionAt(this.distance);
     this.x = p.x;
     this.y = p.y;
-    this.sprite.setPosition(p.x, p.y).setRotation(this.recruited ? p.angle + Math.PI : p.angle).setDepth(p.y);
+    this.sprite.setPosition(p.x + this.offX, p.y + this.offY)
+      .setRotation((this.recruited ? p.angle + Math.PI : p.angle) + this.rotOff).setDepth(p.y);
     if (this.light) {
       this.light.x = p.x;
       this.light.y = p.y;
@@ -92,6 +101,7 @@ export class Enemy {
   // Remove with a short shrink/fade (killed) or immediately.
   destroy(animated = false) {
     this.alive = false;
+    this.scene.tweens.killTweensOf(this); // lunge / wobble tweens on offX/offY/rotOff
     this.bar.destroy();
     if (this.light) this.scene.lighting.removeLight(this.light);
     this.light = null;

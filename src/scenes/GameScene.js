@@ -4,7 +4,7 @@ import { TOWERS } from '../config/towers.js';
 import { WAVES } from '../config/waves.js';
 import { createPath } from '../logic/path.js';
 import { createGameState, earn, loseLives } from '../logic/state.js';
-import { canPlace, placeTower, upgradeTower, snap } from '../logic/towers.js';
+import { canPlace, placeTower, upgradeTower, snap, towerStats } from '../logic/towers.js';
 import { buildSchedule, createWaveRunner, waveBonus } from '../logic/waves.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
@@ -12,7 +12,10 @@ import { drawCellar } from '../fx/cellar.js';
 import { ENEMIES } from '../config/enemies.js';
 import { createPowerUp } from '../logic/buffs.js';
 import { play } from '../fx/sound.js';
-import { startDust, shatter } from '../fx/particles.js';
+import { startDust, shatter, splash, corkPop } from '../fx/particles.js';
+import {
+  damageTower as hurtTower, removeTower, repairTower, tickAttacker,
+} from '../logic/siege.js';
 
 const POWER = { durationMs: 10000, cooldownMs: 45000 };
 
@@ -23,7 +26,8 @@ const POWER = { durationMs: 10000, cooldownMs: 45000 };
 //   tower-placed, placement-refused, enemy-killed, tower-selected,
 //   tower-clicked, tower-upgraded, upgrade-refused, power-changed, power-refused, game-over,
 //   boss-spawned, buff-added (wine)
-// HUD -> Game: start-wave, select-tower, upgrade-tower, activate-power
+//   tower-damaged, tower-destroyed, tower-repaired, repair-refused (enemies fight back)
+// HUD -> Game: start-wave, select-tower, upgrade-tower, repair-tower, activate-power
 // Tasting -> Game: tasting-picked (wine)
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -60,6 +64,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('start-wave', this.startWave, this);
     this.events.on('select-tower', this.selectTower, this);
     this.events.on('upgrade-tower', this.upgrade, this);
+    this.events.on('repair-tower', this.repair, this);
     this.events.on('activate-power', this.activatePower, this);
     this.events.on('tasting-picked', this.onTastingPicked, this);
     this.input.keyboard.on('keydown-ESC', this.onEsc, this);
@@ -204,6 +209,134 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('tower-upgraded', tower.placed);
   }
 
+  // ---------- enemies fight back ----------
+  // Every pest's attacker decides what it does this frame; hits go through
+  // damageTower; destroyed towers are swept once, after the loop.
+  enemyAttacks(dtMs) {
+    const targets = this.towers.filter((t) => !t.dead)
+      .map((t) => ({ id: t.placed.id, x: t.stats.x, y: t.stats.y, hp: t.placed.hp }));
+    this.attackTargets = targets;
+    for (const e of [...this.enemies]) {
+      if (!e.alive || !e.attacker) continue;
+      const r = tickAttacker(e.attacker, e, targets, dtMs * e.slowFactor);
+      e.holding = r.holding;
+      if (r.hits.length && e.attacker.cfg.style === 'slam') this.slamFx(e);
+      for (const h of r.hits) {
+        const tower = this.towers.find((t) => t.placed.id === h.id);
+        if (!tower || tower.dead) continue;
+        this.attackFx(e, tower);
+        this.damageTower(tower, h.damage);
+      }
+      if (r.selfDestruct) {
+        splash(this, e.x, e.y);
+        play('splash');
+        this.removeEnemy(e, true); // no reward: it spent itself on your tower
+      }
+    }
+    this.attackTargets = null;
+    this.sweepTowers();
+  }
+
+  attackFx(e, tower) {
+    const { x, y } = tower.stats;
+    switch (e.attacker.cfg.style) {
+      case 'dash': { // lunge 60% of the way and back
+        this.tweens.killTweensOf(e);
+        e.offX = 0; e.offY = 0;
+        this.tweens.add({ targets: e, offX: (x - e.x) * 0.6, offY: (y - 10 - e.y) * 0.6, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+        play('hit', { pitch: 1.4 });
+        break;
+      }
+      case 'ranged': {
+        const cork = this.add.image(e.x, e.y, 'proj-cork').setDepth(1999);
+        this.tweens.add({ targets: cork, x, y: y - 14, duration: 180, onComplete: () => cork.destroy() });
+        play('cork', { pitch: 0.6 });
+        break;
+      }
+      case 'chew': {
+        this.tweens.killTweensOf(e);
+        e.rotOff = 0;
+        this.tweens.add({ targets: e, rotOff: 0.35, duration: 60, yoyo: true, repeat: 1, onComplete: () => { e.rotOff = 0; } });
+        corkPop(this, x, y - 10);
+        play('hit');
+        break;
+      }
+      case 'burst':
+        splash(this, x, y - 10);
+        break;
+      default:
+        break;
+    }
+  }
+
+  slamFx(e) {
+    const reach = e.attacker.cfg.reach;
+    const ring = this.add.circle(e.x, e.y, reach, 0xe9dcc0, 0.25).setDepth(2545).setScale(0.2);
+    ring.setStrokeStyle(4, 0xe9dcc0, 0.9);
+    this.tweens.add({ targets: ring, scale: 1, duration: 300, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: ring, alpha: 0, duration: 480, ease: 'Quad.easeIn', onComplete: () => ring.destroy() });
+    this.cameras.main.shake(200, 0.006);
+    play('hit', { pitch: 0.6 });
+  }
+
+  damageTower(tower, amount) {
+    if (tower.dead) return;
+    const destroyed = hurtTower(tower.placed, amount);
+    const target = this.attackTargets?.find((t) => t.id === tower.placed.id);
+    if (target) target.hp = tower.placed.hp; // later hits this frame see it
+    tower.drawHp();
+    tower.hitFlash();
+    this.events.emit('tower-damaged', tower.placed);
+    if (destroyed) tower.dead = true;
+  }
+
+  // Destroyed towers are gone for good (with their upgrades); the spot is free again.
+  sweepTowers() {
+    const dead = this.towers.filter((t) => t.dead);
+    if (!dead.length) return;
+    this.towers = this.towers.filter((t) => !t.dead);
+    for (const t of dead) {
+      const { x, y } = t.stats;
+      shatter(this, x, y - 10);
+      play('shatter');
+      this.cameras.main.shake(150, 0.004);
+      if (t.light) this.lighting.removeLight(t.light);
+      t.light = null;
+      t.destroy();
+      removeTower(this.state, t.placed);
+      if (this.hoverTower === t) {
+        this.hoverTower = null;
+        this.input.setDefaultCursor('default');
+        if (!this.selectedType) this.rangeRing.clear();
+      }
+      this.floatText(x, y - 40, `${TOWERS[t.placed.type].name} destroyed!`, '#ff6b6b');
+      this.events.emit('tower-destroyed', t.placed);
+    }
+  }
+
+  repair(placed) {
+    const tower = this.towers.find((t) => t.placed.id === placed.id);
+    if (!tower || tower.dead || this.ending) return;
+    const r = repairTower(this.state, tower.placed);
+    if (!r.ok) {
+      play('nope');
+      this.events.emit('repair-refused', r.reason);
+      return;
+    }
+    const { x, y } = tower.stats;
+    play('place');
+    const fx = this.add.particles(x, y - 20, 'spark', {
+      emitting: false, lifespan: 600, speed: { min: 40, max: 140 }, scale: { start: 0.8, end: 0 },
+      alpha: { start: 1, end: 0 }, tint: [0xffd36b, 0x8fd16a], blendMode: 'ADD',
+    }).setDepth(2660);
+    fx.explode(12);
+    this.time.delayedCall(700, () => fx.destroy());
+    this.floatText(x, y - 40, 'Repaired!', '#8fd16a');
+    tower.drawHp();
+    this.events.emit('grapes-changed', this.state.grapes);
+    this.events.emit('tower-repaired', tower.placed);
+  }
+
   startWave() {
     if (this.runner || this.ending || this.tastingOpen || this.state.wave >= WAVES.length) return;
     this.waveIndex = this.state.wave;
@@ -263,7 +396,7 @@ export class GameScene extends Phaser.Scene {
 
   // ---------- presenter keys (undocumented on screen) ----------
   // 1-7 jump to that wave, B Le Monstre Blanc, G +500 Grapes,
-  // W Wine Tasting, R charge Taureau Rouge. Dead while Game is paused
+  // W Wine Tasting, R charge Taureau Rouge, D every tower to 25% HP. Dead while Game is paused
   // (Tasting open): a paused scene's keyboard doesn't fire.
   onDemoKey(e) {
     if (e.repeat || this.ending || this.tastingOpen) return;
@@ -277,6 +410,15 @@ export class GameScene extends Phaser.Scene {
       this.floatText(640, 110, '+500 Grapes', '#ffd36b');
       this.events.emit('grapes-changed', this.state.grapes);
     } else if (k === 'w') this.openTasting();
+    else if (k === 'd') {
+      for (const t of this.towers) {
+        t.placed.hp = Math.max(1, Math.round(towerStats(t.placed).maxHp * 0.25));
+        t.drawHp();
+        t.hitFlash();
+        this.events.emit('tower-damaged', t.placed);
+      }
+      this.floatText(640, 110, 'The pests bite back!', '#ff6b6b');
+    }
     else if (k === 'r') {
       if (this.powerUp.active) return;
       this.powerUp = createPowerUp(POWER);
@@ -452,6 +594,7 @@ export class GameScene extends Phaser.Scene {
       this.events.emit('lives-changed', this.state.lives);
       if (this.state.status === 'lost') return this.endGame('lost');
     }
+    this.enemyAttacks(dt * 1000);
 
     this.updateRecruits(dt);
     // Le Monstre Blanc's footsteps rattle the cellar
@@ -499,6 +642,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('start-wave', this.startWave, this);
     this.events.off('select-tower', this.selectTower, this);
     this.events.off('upgrade-tower', this.upgrade, this);
+    this.events.off('repair-tower', this.repair, this);
     this.events.off('activate-power', this.activatePower, this);
     this.events.off('tasting-picked', this.onTastingPicked, this);
     this.input.keyboard.off('keydown-ESC', this.onEsc, this);
