@@ -867,7 +867,7 @@ export class GameScene extends Phaser.Scene {
     if (this.ending) return;
     this.ending = true;
     // a loss in Endless still ends on the victory look: the scripted cellar was held
-    const data = { result: this.endless ? 'won' : result, endless: this.endless, wave: this.state.wave, kills: this.kills };
+    const data = { result: this.endless ? 'won' : result, endless: this.endless, wave: this.state.wave, kills: this.kills, lives: this.state.lives };
     this.events.emit('game-over', result);
     this.cameras.main.fadeOut(400, 18, 10, 13);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('End', data));
