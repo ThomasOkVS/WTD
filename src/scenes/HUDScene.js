@@ -109,6 +109,8 @@ export class HUDScene extends Phaser.Scene {
     });
     // first styling after the entrance slide so the two don't fight over y
     this.time.delayedCall(480, () => this.refreshCards(true));
+    this.buildHint = null;
+    this.time.delayedCall(900, () => this.showBuildHint());
     this.cardsReady = false;
   }
 
@@ -508,7 +510,36 @@ export class HUDScene extends Phaser.Scene {
     this.refreshCards();
   }
 
+  // First 10 seconds teach the core verb: pulse the cheapest card and say what
+  // to do, until the first tower goes down (or a wave starts). Once per run.
+  showBuildHint() {
+    const gs = this.scene.get('Game');
+    if (this.wave > 0 || !gs || gs.towers?.length) return;
+    const type = Object.keys(this.cards).sort((a, b) => TOWERS[a].cost - TOWERS[b].cost)[0];
+    const card = this.cards[type];
+    if (!card) return;
+    const ring = this.add.graphics({ x: card.x, y: CARD_Y });
+    ring.lineStyle(4, 0xffb35c, 1).strokeRoundedRect(-CARD_W / 2 - 6, -CARD_H / 2 - 6, CARD_W + 12, CARD_H + 12, 12);
+    ring.setAlpha(0);
+    this.tweens.add({ targets: ring, alpha: 1, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const tip = this.add.container(card.x + 150, CARD_Y - CARD_H / 2 - 40);
+    const text = this.add.text(0, 0, 'Pick a tower, then click the cellar floor', body(20)).setOrigin(0.5);
+    tip.add([panel(this, 0, 0, text.width + 48, 46), text]);
+    enter(this, tip, { dy: 10, duration: 300 });
+    this.buildHint = { ring, tip };
+    this.listen('wave-started', this.hideBuildHint);
+  }
+
+  hideBuildHint() {
+    const h = this.buildHint;
+    if (!h) return;
+    this.buildHint = null;
+    this.tweens.killTweensOf(h.ring);
+    this.tweens.add({ targets: [h.ring, h.tip], alpha: 0, duration: 250, onComplete: () => { h.ring.destroy(); h.tip.destroy(); } });
+  }
+
   onPlaced(placed) {
+    this.hideBuildHint();
     if (placed.type === 'thomas') this.thomasPlaced = true;
     this.refreshCards();
   }
