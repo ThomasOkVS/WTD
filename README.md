@@ -29,6 +29,8 @@ Cheapest first; hover a card in the game for the same summary with live numbers.
 - **Decanter** (90): bursts wine all around itself and hits every pest in a small radius. Build it next to the path.
 - **Thomas** (120, one per map): every 6 s he recruits a pest, which walks back and smashes every pest it meets. Towers within his gold ring fire 15% faster.
 
+**Pests fight back.** Flies sting, corkscrews spit corks, rats stop and chew, cans burst on the nearest tower and Le Monstre Blanc slams everything around it. Towers have HP (upgrades raise it); a destroyed tower is gone for good, upgrades and all. Click a tower to repair it for Grapes.
+
 ## Demo keys
 
 Presenter shortcuts. They work in the dev and production builds and have no on-screen UI.
@@ -40,11 +42,12 @@ Presenter shortcuts. They work in the dev and production builds and have no on-s
 | `G` | +500 Grapes |
 | `W` | Open Thomas's Annual Wine Tasting |
 | `R` | Recharge Taureau Rouge (when it is not running) |
+| `D` | Every tower drops to 25% HP ("The pests bite back!"): puts Repair and destruction on cue |
 | `M` | Mute / unmute |
 
 Except `M`, the keys are ignored while the Wine Tasting is open (the cellar is paused) and after game over. Digits use the physical number row (no Shift needed on AZERTY).
 
-Demo script (under 2 minutes): Play → `G` `G` `G` → place towers (incl. Thomas) and upgrade a few → `1` → wave cleared, Wine Tasting → `W` for a second tasting → `7` (the last wave brings Le Monstre Blanc on its own) → fire Taureau Rouge as the boss enters → Le Monstre Blanc splits into cans → End screen. Use `B` only to show the boss early on an empty field, never on top of wave 7.
+Demo script (under 2 minutes): Play → `G` `G` `G` → place towers (incl. Thomas) and upgrade a few → `1` → wave cleared, Wine Tasting → `D` → click a tower → Repair (the pests fight back) → `W` for a second tasting → `7` (the last wave brings Le Monstre Blanc on its own) → fire Taureau Rouge as the boss enters → Le Monstre Blanc splits into cans → End screen. Use `B` only to show the boss early on an empty field, never on top of wave 7.
 
 ## Nexios references
 
