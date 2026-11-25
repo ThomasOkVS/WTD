@@ -24,6 +24,14 @@
   - New demo key **`D`**: every tower to 25% HP. README demo script updated (pick the wine first: keys are dead while the Tasting is open).
   - Balance: `SIEGE.damageMult = 0.4` (config/enemies.js). A scripted honest build that never repairs loses 1 tower by wave 6 and wins wave 7 with 20 lives; at 1.0 it lost the run at wave 5.
   - Review Focus 1–5 checked in the dev build. `npm test` passes 60/60.
+- **Playtest feedback 2 (2026-11-25, ~13:50), plan `docs/superpowers/plans/2026-11-25-playtest-feedback-2.md`, all tasks shipped (nothing cut), merged into `main`:**
+  - Thomas nerf: a recruit's HP is a damage budget (`recruitSmash` in `logic/combat.js`); it pops with "Spent!" at 0. Recruit every 8/6/4.5 s.
+  - Pause (`P`, `Esc` when nothing is open, HUD button): `PauseScene` with Resume / Restart / Back to title. Esc order: cancel placement → close upgrade panel → pause.
+  - 2× speed (`F`, HUD 1×/2× toggle): `dt`, `time.timeScale` and `tweens.timeScale`; every run starts at 1×.
+  - Next-wave preview above Next wave (`describeWave`) and an Auto toggle (registry `autoWave`, survives restarts): 3 s countdown after a clear, never while a modal is open, frozen while paused.
+  - Sell: Sell button in the upgrade panel, 70% of Grapes invested × HP fraction (`sellValue`), two-step "Sure? +N". Thomas takes his recruits along; his card unlocks again.
+  - Endless: after wave 7, "The cellar holds!" offers Keep pouring / Claim victory. `waveAt` scales wave 7's pests (+20% count, +15% HP per endless wave), Le Monstre Blanc every 3rd endless wave, a Tasting every 3rd. A loss in Endless ends on the victory screen with "Endless: held until wave N".
+  - `npm test` passes 79/79.
 - **Next:** bug-bash and run the README demo script on the live site before 15:45.
 
 ## The feedback (user's words)
