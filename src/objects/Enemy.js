@@ -7,11 +7,11 @@ const GOLD = 0xffd36b;
 // One walking enemy. Plain object (x, y, distance, hp, alive, armour) so the
 // Phaser-free combat rules (pickTarget/applyDamage) can use it directly.
 export class Enemy {
-  constructor(scene, type, distance = 0) {
+  constructor(scene, type, distance = 0, hpMult = 1) {
     const cfg = ENEMIES[type];
     this.scene = scene;
     this.type = type;
-    this.hp = this.maxHp = cfg.hp;
+    this.hp = this.maxHp = Math.round(cfg.hp * hpMult); // Endless waves are tougher
     this.speed = cfg.speed;
     this.armour = cfg.armour;
     this.reward = cfg.reward;

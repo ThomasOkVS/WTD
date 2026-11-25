@@ -3,7 +3,7 @@ import { TOWERS, statLine } from '../config/towers.js';
 import { towerStats } from '../logic/towers.js';
 import { repairCost, sellValue } from '../logic/siege.js';
 import { WAVES } from '../config/waves.js';
-import { describeWave } from '../logic/waves.js';
+import { describeWave, waveAt } from '../logic/waves.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
 import { describeEffect } from './TastingScene.js';
@@ -41,6 +41,7 @@ export class HUDScene extends Phaser.Scene {
     this.listeners = [];
     this.selected = null;
     this.thomasPlaced = false;
+    this.endless = false;
     this.shownGrapes = this.grapes;
     this.upgradeFor = null;
     this.upgradeUi = null;
@@ -77,6 +78,7 @@ export class HUDScene extends Phaser.Scene {
     this.listen('tower-sold', this.onTowerSold);
     this.listen('power-changed', this.setPower);
     this.listen('auto-wave-tick', this.onAutoTick);
+    this.listen('endless-started', this.onEndless);
     this.listen('speed-changed', (n) => { this.speed = n; this.speedUi.draw(); });
     this.listen('power-refused', () => this.showToast('Save it for the pests!'));
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
@@ -128,12 +130,13 @@ export class HUDScene extends Phaser.Scene {
     const rp = panel(this, 0, 0, 318, 66).setOrigin(0);
     const waveLabel = this.add.text(22, 15, 'Wave', body(16, PALETTE.burgundy));
     this.waveText = this.add.text(22, 29, '', serif(26));
+    this.endlessTag = this.add.text(0, 40, 'Endless', body(16, PALETTE.wineRed ?? PALETTE.burgundy)).setVisible(false);
     const rule = this.add.rectangle(142, 33, 1.5, 38, COLORS.burgundy, 0.6);
     const bottle = this.add.image(176, 36, 'grand-cru').setScale(0.42);
     const livesLabel = this.add.text(198, 15, 'Grand Cru', body(16, PALETTE.burgundy));
     this.livesText = this.add.text(198, 29, String(this.lives), serif(26));
     this.livesFlash = this.add.rectangle(4, 4, 310, 58, COLORS.wineRed, 1).setOrigin(0).setAlpha(0);
-    r.add([rp, waveLabel, this.waveText, rule, bottle, livesLabel, this.livesText, this.livesFlash]);
+    r.add([rp, waveLabel, this.waveText, this.endlessTag, rule, bottle, livesLabel, this.livesText, this.livesFlash]);
     this.bottle = bottle;
     this.livesPanel = r;
     this.updateWaveText();
@@ -234,7 +237,16 @@ export class HUDScene extends Phaser.Scene {
   }
 
   updateWaveText() {
-    this.waveText.setText(`${Math.max(1, this.wave)} / ${WAVES.length}`);
+    const past = this.wave > WAVES.length;
+    this.waveText.setText(past ? String(this.wave) : `${Math.max(1, this.wave)} / ${WAVES.length}`);
+    this.endlessTag.setVisible(past).setX(this.waveText.x + this.waveText.width + 8);
+  }
+
+  onEndless() {
+    this.endless = true;
+    this.nextBtn.setEnabled(true);
+    this.refreshPreview(true);
+    this.banner('Endless cellar', 'The pests keep coming, tougher every wave');
   }
 
   // Grapes counter rolls to the new value; gains pulse gold.
@@ -275,7 +287,8 @@ export class HUDScene extends Phaser.Scene {
     this.nextBtn.setEnabled(false);
     this.onAutoTick(null);
     this.refreshPreview(false);
-    this.banner(`Wave ${i + 1}`, i === WAVES.length - 1 ? 'Le Monstre Blanc stirs' : `of ${WAVES.length}`);
+    if (i >= WAVES.length) this.banner(`Endless wave ${i + 1}`, describeWave(waveAt(i)));
+    else this.banner(`Wave ${i + 1}`, i === WAVES.length - 1 ? 'Le Monstre Blanc stirs' : `of ${WAVES.length}`);
     if (!this.powerHinted && this.power.ready) {
       this.powerHinted = true; // first wave of the run, whichever number it is
       this.time.delayedCall(1700, () => this.showToast('Taureau Rouge is charged: click the can for double fire rate!', 3200));
@@ -283,7 +296,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   onWaveCleared(i) {
-    if (i < WAVES.length - 1) {
+    if (i < WAVES.length - 1 || i >= WAVES.length) {
       this.refreshPreview(true);
       this.nextBtn.setEnabled(true);
       this.banner(`Wave ${i + 1} cleared`, 'Build, then call the next wave');
@@ -386,8 +399,8 @@ export class HUDScene extends Phaser.Scene {
 
   // Description of the wave the Next wave button would start, or null.
   nextWaveText() {
-    const next = WAVES[this.wave];
-    return next ? `Next: ${describeWave(next)}` : null;
+    if (this.wave >= WAVES.length && !this.endless) return null;
+    return `Next: ${describeWave(waveAt(this.wave))}`;
   }
 
   refreshPreview(show) {

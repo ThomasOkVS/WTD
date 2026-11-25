@@ -15,6 +15,7 @@ export class EndScene extends Phaser.Scene {
     this.result = data.result || 'lost';
     this.wave = data.wave || 0;
     this.kills = data.kills ?? null;
+    this.endless = !!data.endless;
     this.leaving = false; // scene instances are reused across runs
   }
 
@@ -41,7 +42,7 @@ export class EndScene extends Phaser.Scene {
     const p = panel(this, 0, 0, 640, 260);
     const title = this.add.text(0, -82, won ? 'Vintage saved!' : 'The Grand Cru has shattered', serif(won ? 44 : 34, won ? PALETTE.ink : PALETTE.burgundy)).setOrigin(0.5);
     const rule = this.add.rectangle(0, -46, 380, 1.5, COLORS.burgundy, 0.6);
-    const reached = won ? `All ${WAVES.length} waves held back` : `Held until wave ${Math.max(1, this.wave)} of ${WAVES.length}`;
+    const reached = this.endless ? `Endless: held until wave ${this.wave}` : won ? `All ${WAVES.length} waves held back` : `Held until wave ${Math.max(1, this.wave)} of ${WAVES.length}`;
     const lines = [reached];
     if (this.kills !== null) lines.push(`${this.kills} pests dispatched`);
     const stats = this.add.text(0, -4, lines.join('\n'), body(24, PALETTE.ink, { align: 'center' })).setOrigin(0.5).setLineSpacing(4);

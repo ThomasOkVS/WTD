@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSchedule, createWaveRunner, waveBonus, describeWave } from '../../src/logic/waves.js';
+import { buildSchedule, createWaveRunner, waveBonus, describeWave, waveAt } from '../../src/logic/waves.js';
 import { WAVES } from '../../src/config/waves.js';
 import { ENEMIES } from '../../src/config/enemies.js';
 
@@ -10,7 +10,7 @@ describe('waves', () => {
   ] };
   it('buildSchedule sorts by time', () => {
     expect(buildSchedule(wave)).toEqual([
-      { atMs: 0, type: 'fly' }, { atMs: 50, type: 'rat' }, { atMs: 100, type: 'fly' }, { atMs: 200, type: 'fly' },
+      { atMs: 0, type: 'fly', hpMult: 1 }, { atMs: 50, type: 'rat', hpMult: 1 }, { atMs: 100, type: 'fly', hpMult: 1 }, { atMs: 200, type: 'fly', hpMult: 1 },
     ]);
   });
   it('runner releases due spawns', () => {
@@ -46,5 +46,24 @@ describe('describeWave', () => {
   });
   it('announces the boss', () => {
     expect(describeWave(WAVES[6])).toBe('Le Monstre Blanc!');
+  });
+});
+
+describe('waveAt (endless)', () => {
+  it('returns the scripted waves with hpMult 1', () => {
+    expect(waveAt(0)).toEqual({ ...WAVES[0], hpMult: 1 });
+  });
+  it('wave 8 scales the last wave without its boss', () => {
+    const w = waveAt(7);
+    expect(w.hpMult).toBeCloseTo(1.15);
+    expect(w.groups.some((g) => g.type === 'monstre')).toBe(false);
+    expect(w.groups.find((g) => g.type === 'corkscrew').count).toBe(14);
+  });
+  it('Le Monstre Blanc returns every 3rd endless wave', () => {
+    expect(waveAt(9).groups.some((g) => g.type === 'monstre')).toBe(true);
+  });
+  it('buildSchedule carries hpMult', () => {
+    expect(buildSchedule(waveAt(7))[0].hpMult).toBeCloseTo(1.15);
+    expect(buildSchedule(WAVES[0])[0].hpMult).toBe(1);
   });
 });

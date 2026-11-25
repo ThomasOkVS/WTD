@@ -6,7 +6,7 @@ import { createPath } from '../logic/path.js';
 import { createGameState, earn, loseLives } from '../logic/state.js';
 import { canPlace, placeTower, upgradeTower, snap, towerStats } from '../logic/towers.js';
 import { recruitSmash } from '../logic/combat.js';
-import { buildSchedule, createWaveRunner, waveBonus } from '../logic/waves.js';
+import { buildSchedule, createWaveRunner, waveBonus, waveAt } from '../logic/waves.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
 import { drawCellar } from '../fx/cellar.js';
@@ -51,6 +51,8 @@ export class GameScene extends Phaser.Scene {
     this.recruits = [];
     this.tastingOpen = false;
     this.pauseOpen = false;
+    this.endless = false;
+    this.waveHpMult = 1;
     // Clock and TweenManager survive restarts: a new run always starts at 1x.
     this.speed = 1;
     this.autoIn = null; // ms until the auto next wave, null = no countdown
@@ -412,7 +414,14 @@ export class GameScene extends Phaser.Scene {
 
   // ---------- auto next wave ----------
   hasNextWave() {
-    return this.state.wave < WAVES.length;
+    return this.endless || this.state.wave < WAVES.length;
+  }
+
+  // "Keep pouring" on the victory choice
+  startEndless() {
+    this.endless = true;
+    this.events.emit('endless-started');
+    if (this.registry.get('autoWave')) this.autoIn = 3000;
   }
 
   toggleAuto() {
@@ -447,10 +456,13 @@ export class GameScene extends Phaser.Scene {
 
   startWave() {
     this.clearAuto();
-    if (this.runner || this.ending || this.tastingOpen || this.state.wave >= WAVES.length) return;
+    if (this.runner || this.ending || this.tastingOpen || this.pauseOpen) return;
+    if (!this.endless && this.state.wave >= WAVES.length) return;
     this.waveIndex = this.state.wave;
     this.state.wave += 1;
-    this.runner = createWaveRunner(buildSchedule(WAVES[this.waveIndex]));
+    const wave = waveAt(this.waveIndex);
+    this.waveHpMult = wave.hpMult;
+    this.runner = createWaveRunner(buildSchedule(wave));
     play('wave');
     this.events.emit('wave-started', this.waveIndex);
   }
@@ -476,8 +488,8 @@ export class GameScene extends Phaser.Scene {
     return this.state.buffs.reduce((m, b) => (b.stat === 'reward' ? m * b.mult : m), 1);
   }
 
-  spawnEnemy(type, distance = 0) {
-    const e = new Enemy(this, type, distance);
+  spawnEnemy(type, distance = 0, hpMult = 1) {
+    const e = new Enemy(this, type, distance, hpMult);
     this.enemies.push(e);
     if (e.boss) this.events.emit('boss-spawned', type);
     return e;
@@ -700,7 +712,7 @@ export class GameScene extends Phaser.Scene {
     const dt = (Math.min(delta, 100) / 1000) * this.speed; // clamp so a tab switch doesn't teleport enemies
     this.clock += dt * 1000;
 
-    if (this.runner) for (const type of this.runner.tick(dt * 1000)) this.spawnEnemy(type);
+    if (this.runner) for (const type of this.runner.tick(dt * 1000)) this.spawnEnemy(type, 0, this.waveHpMult);
     this.updatePower(dt * 1000);
 
     for (const e of [...this.enemies]) {
@@ -741,9 +753,10 @@ export class GameScene extends Phaser.Scene {
       for (const r of [...this.recruits]) this.dismissRecruit(r);
       this.events.emit('wave-cleared', i);
       if (this.registry.get('autoWave') && this.hasNextWave()) this.autoIn = 3000;
-      if (i === WAVES.length - 1) {
-        this.state.status = 'won';
-        this.endGame('won');
+      if (i === WAVES.length - 1 && !this.endless) {
+        this.openPause('victory'); // Keep pouring (Endless) or Claim victory
+      } else if (i >= WAVES.length) {
+        if ((i - WAVES.length + 1) % 3 === 0) this.openTasting(); // a tasting every 3rd endless wave
       } else {
         this.openTasting();
       }
@@ -753,7 +766,8 @@ export class GameScene extends Phaser.Scene {
   endGame(result) {
     if (this.ending) return;
     this.ending = true;
-    const data = { result, wave: this.state.wave, kills: this.kills };
+    // a loss in Endless still ends on the victory look: the scripted cellar was held
+    const data = { result: this.endless ? 'won' : result, endless: this.endless, wave: this.state.wave, kills: this.kills };
     this.events.emit('game-over', result);
     this.cameras.main.fadeOut(400, 18, 10, 13);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('End', data));
