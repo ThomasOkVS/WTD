@@ -91,6 +91,7 @@ export class HUDScene extends Phaser.Scene {
       this.nestHinted = true;
       this.refreshPreview(this.preview.visible);
     });
+    this.bossBar = this.createBossBar();
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
     this.listen('boss-enraged', () => this.banner('Le Monstre Blanc is furious!', 'Sugar rush incoming'));
     this.listen('buff-added', (wine) => this.banner(`Buff: ${wine.name}`, describeEffect(wine.effect).replace('\n', ', ')));
@@ -247,6 +248,47 @@ export class HUDScene extends Phaser.Scene {
 
   update() {
     if (this.muteUi && this.muteUi.shown !== isMuted()) this.drawMute(); // M key toggles it too
+    this.updateBossBar();
+  }
+
+  // ---------- boss health bar: top centre, tracks the newest living boss ----------
+  createBossBar() {
+    const W = 560, H = 16;
+    const c = this.add.container(640, 104).setAlpha(0).setVisible(false);
+    const frame = this.add.graphics();
+    frame.fillStyle(0x120a0d, 0.85).fillRoundedRect(-W / 2 - 6, -H / 2 - 6, W + 12, H + 12, 6);
+    frame.lineStyle(2, 0xe9dcc0, 1).strokeRoundedRect(-W / 2 - 6, -H / 2 - 6, W + 12, H + 12, 6);
+    const fill = this.add.graphics();
+    const label = this.add.text(0, -24, 'Le Monstre Blanc', serif(18, PALETTE.parchment)).setOrigin(0.5);
+    label.setShadow(0, 2, '#120a0d', 4, false, true);
+    c.add([frame, fill, label]);
+    return { c, fill, W, H, shown: 0, boss: null, on: false };
+  }
+
+  updateBossBar() {
+    const bar = this.bossBar;
+    const enemies = this.scene.get('Game')?.enemies || [];
+    let boss = null;
+    for (const e of enemies) if (e.boss && e.alive && !e.recruited) boss = e; // newest living boss
+    if (!boss) {
+      if (bar.on) {
+        bar.on = false;
+        this.to(bar.c, 'show', { alpha: 0, duration: 300, onComplete: () => bar.c.setVisible(false) });
+      }
+      return;
+    }
+    if (!bar.on) {
+      bar.on = true;
+      bar.shown = 1;
+      bar.c.setVisible(true);
+      this.to(bar.c, 'show', { alpha: 1, duration: 300 });
+    }
+    const f = Math.max(0, Math.min(1, boss.hp / boss.maxHp));
+    bar.shown += (f - bar.shown) * 0.15; // smooth slide toward the real value
+    const { W, H } = bar;
+    bar.fill.clear()
+      .fillStyle(boss.enraged ? 0xff2a40 : COLORS.burgundy, 1).fillRect(-W / 2, -H / 2, W * bar.shown, H)
+      .fillStyle(0xffffff, 0.18).fillRect(-W / 2, -H / 2, W * bar.shown, H / 3);
   }
 
   updateWaveText() {
@@ -312,7 +354,11 @@ export class HUDScene extends Phaser.Scene {
     if (i !== WAVES.length - 1 || this.endless) {
       this.refreshPreview(true);
       this.nextBtn.setEnabled(true);
-      this.banner(`Wave ${i + 1} cleared`, 'Build, then call the next wave');
+      // Game opens the tasting right after emitting this: wait a tick and skip
+      // the banner if it did, so it doesn't draw over the tasting's title
+      this.time.delayedCall(0, () => {
+        if (!this.scene.get('Game').tastingOpen) this.banner(`Wave ${i + 1} cleared`, 'Build, then call the next wave');
+      });
     }
   }
 
@@ -682,15 +728,21 @@ export class HUDScene extends Phaser.Scene {
     const hp = this.add.text(0, -42, '', body(16)).setOrigin(0.5);
     const hpBar = this.add.graphics();
     const rule = this.add.rectangle(0, -12, W - 70, 1.5, COLORS.burgundy, 0.55);
-    const next = this.add.text(0, 8, '', body(18)).setOrigin(0.5);
-    const btn = button(this, 0, 48, 196, 42, '', () => this.emit('upgrade-tower', placed), { size: 17 });
+    const next = this.add.text(0, 0, '', body(18)).setOrigin(0.5);
+    const effect = this.add.text(0, 19, '', body(14, PALETTE.burgundy)).setOrigin(0.5);
+    const btn = button(this, 0, 52, 196, 40, '', () => this.emit('upgrade-tower', placed), { size: 17 });
     // never disabled: a refused repair still gets its shake + toast
-    const repair = button(this, 0, 98, 196, 38, '', () => this.emit('repair-tower', placed), { size: 16 });
+    const repair = button(this, 0, 100, 196, 38, '', () => this.emit('repair-tower', placed), { size: 16, variant: 'secondary' });
     // two-step: "Sell for N" -> "Sure? +N" for 3 s -> sold
-    const sell = button(this, 0, 144, 196, 38, '', () => this.onSellClick(), { size: 16 });
-    c.add([bg, title, level, hp, hpBar, rule, next, btn, repair, sell]);
+    const sell = button(this, 0, 145, 196, 36, '', () => this.onSellClick(), { size: 16, variant: 'danger' });
+    const close = this.add.text(W / 2 - 22, -TOP + 22, '×', serif(26, PALETTE.burgundy)).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.closeUpgrade());
+    close.on('pointerover', () => close.setScale(1.2));
+    close.on('pointerout', () => close.setScale(1));
+    c.add([bg, title, level, hp, hpBar, rule, next, effect, btn, repair, sell, close]);
     this.upgradeFor = placed;
-    this.upgradeUi = { c, blocker, title, level, hp, hpBar, next, btn, repair, sell, sellArmed: null };
+    this.upgradeUi = { c, blocker, title, level, hp, hpBar, next, effect, btn, repair, sell, sellArmed: null };
     this.refreshUpgrade();
     c.setScale(0.94);
     this.tweens.add({ targets: c, scale: 1, duration: 220, ease: 'Back.easeOut' });
@@ -709,13 +761,16 @@ export class HUDScene extends Phaser.Scene {
     this.refreshHp();
     const up = ups[placed.level];
     if (!up) {
-      ui.next.setText('Fully aged, nothing left to add');
+      ui.next.setText('Fully upgraded');
+      ui.effect.setText('Fully aged, nothing left to add');
       ui.btn.label.setText('Maxed');
       ui.btn.enabled && ui.btn.setEnabled(false);
       return;
     }
     ui.next.setText(`Next: ${up.name}`);
     fitText(ui.next.setScale(1), 240);
+    ui.effect.setText(statLine(towerStats({ type: placed.type, level: placed.level + 1 })));
+    fitText(ui.effect.setScale(1), 250);
     ui.btn.label.setText(`Upgrade for ${up.cost}`);
     const ok = this.grapes >= up.cost;
     if (ok !== ui.btn.enabled) ui.btn.setEnabled(ok);

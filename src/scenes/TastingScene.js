@@ -23,7 +23,7 @@ export function describeEffect({ stat, mult, tower }) {
 }
 
 // Each wine's bottle is coloured by what it does, so the three differ at a glance.
-const WINE_COLOR = { damage: 0x8a1c2b, rate: 0xc8862a, reward: 0x5a2a6a };
+const WINE_COLOR = { damage: 0x8a1c2b, rate: 0xc8862a, reward: 0x5a2a6a, slowMs: 0x6a8a4a, splash: 0x3a5a8a };
 export const wineColor = (stat) => WINE_COLOR[stat] ?? 0xd77a8a;
 
 const CARD_W = 214, CARD_H = 300, CARD_Y = 430;
