@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TOWERS, statLine } from '../config/towers.js';
 import { towerStats } from '../logic/towers.js';
-import { repairCost } from '../logic/siege.js';
+import { repairCost, sellValue } from '../logic/siege.js';
 import { WAVES } from '../config/waves.js';
 import { describeWave } from '../logic/waves.js';
 import { PALETTE, COLORS } from '../config/palette.js';
@@ -74,6 +74,7 @@ export class HUDScene extends Phaser.Scene {
     this.listen('tower-repaired', this.onTowerHp);
     this.listen('repair-refused', this.onRepairRefused);
     this.listen('tower-destroyed', this.onTowerDestroyed);
+    this.listen('tower-sold', this.onTowerSold);
     this.listen('power-changed', this.setPower);
     this.listen('auto-wave-tick', this.onAutoTick);
     this.listen('speed-changed', (n) => { this.speed = n; this.speedUi.draw(); });
@@ -636,16 +637,16 @@ export class HUDScene extends Phaser.Scene {
   openUpgrade(placed) {
     this.closeUpgrade(true);
     const spot = { x: placed.x, y: placed.y };
-    const W = 280, H = 236;
+    const W = 280, TOP = 118, BOTTOM = 168; // panel extent around the container's origin (Sell row added below)
     const x = Phaser.Math.Clamp(spot.x, W / 2 + 12, 1280 - W / 2 - 12);
-    const y = Phaser.Math.Clamp(spot.y > 330 ? spot.y - 30 - H / 2 : spot.y + 40 + H / 2, H / 2 + 8, 712 - H / 2);
+    const y = Phaser.Math.Clamp(spot.y > 330 ? spot.y - 30 - BOTTOM : spot.y + 40 + TOP, TOP + 8, 712 - BOTTOM);
 
     // full-screen blocker: an outside click closes the panel and nothing else
     const blocker = this.add.zone(640, 360, 1280, 720).setInteractive();
     blocker.on('pointerdown', () => this.closeUpgrade());
 
     const c = this.add.container(x, y);
-    const bg = panel(this, 0, 0, W, H);
+    const bg = panel(this, 0, (BOTTOM - TOP) / 2, W, TOP + BOTTOM);
     bg.setInteractive(); // clicks on the panel body are swallowed, not 'outside'
     bg.on('pointerdown', () => {});
     const title = this.add.text(0, -88, '', serif(19)).setOrigin(0.5);
@@ -657,9 +658,11 @@ export class HUDScene extends Phaser.Scene {
     const btn = button(this, 0, 48, 196, 42, '', () => this.emit('upgrade-tower', placed), { size: 17 });
     // never disabled: a refused repair still gets its shake + toast
     const repair = button(this, 0, 98, 196, 38, '', () => this.emit('repair-tower', placed), { size: 16 });
-    c.add([bg, title, level, hp, hpBar, rule, next, btn, repair]);
+    // two-step: "Sell for N" -> "Sure? +N" for 3 s -> sold
+    const sell = button(this, 0, 144, 196, 38, '', () => this.onSellClick(), { size: 16 });
+    c.add([bg, title, level, hp, hpBar, rule, next, btn, repair, sell]);
     this.upgradeFor = placed;
-    this.upgradeUi = { c, blocker, title, level, hp, hpBar, next, btn, repair };
+    this.upgradeUi = { c, blocker, title, level, hp, hpBar, next, btn, repair, sell, sellArmed: null };
     this.refreshUpgrade();
     c.setScale(0.94);
     this.tweens.add({ targets: c, scale: 1, duration: 220, ease: 'Back.easeOut' });
@@ -704,6 +707,33 @@ export class HUDScene extends Phaser.Scene {
     const cost = repairCost(placed);
     ui.repair.label.setText(cost > 0 ? `Repair for ${cost}` : 'No scratches');
     ui.repair.setAlpha(cost > 0 && this.grapes >= cost ? 1 : 0.55);
+    if (!ui.sellArmed) ui.sell.label.setText(`Sell for ${sellValue(placed)}`);
+  }
+
+  onSellClick() {
+    const ui = this.upgradeUi;
+    const placed = this.upgradeFor;
+    if (!ui || !placed) return;
+    if (ui.sellArmed) {
+      ui.sellArmed.remove();
+      ui.sellArmed = null;
+      this.emit('sell-tower', placed);
+      return;
+    }
+    ui.sell.label.setText(`Sure? +${sellValue(placed)}`);
+    ui.sellArmed = this.time.delayedCall(3000, () => {
+      if (this.upgradeUi !== ui) return;
+      ui.sellArmed = null;
+      this.refreshHp();
+    });
+  }
+
+  onTowerSold(placed) {
+    if (this.upgradeFor?.id === placed.id) this.closeUpgrade();
+    if (placed.type === 'thomas') {
+      this.thomasPlaced = false;
+      this.refreshCards();
+    }
   }
 
   onTowerHp(placed) {
@@ -752,6 +782,7 @@ export class HUDScene extends Phaser.Scene {
     if (!ui) return;
     this.upgradeUi = null;
     this.upgradeFor = null;
+    ui.sellArmed?.remove();
     ui.blocker.destroy();
     if (instant === true) return ui.c.destroy();
     this.tweens.killTweensOf(ui.c);

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createGameState } from '../../src/logic/state.js';
 import { canPlace, placeTower, upgradeTower, towerStats } from '../../src/logic/towers.js';
 import {
-  damageTower, investedIn, repairCost, repairTower, removeTower, createAttacker, tickAttacker,
+  damageTower, investedIn, repairCost, repairTower, removeTower, createAttacker, tickAttacker, sellValue, sellTower,
 } from '../../src/logic/siege.js';
 import { ENEMIES, SIEGE } from '../../src/config/enemies.js';
 
@@ -122,5 +122,29 @@ describe('siege: pest attackers', () => {
   });
   it('every enemy has an attack with reach >= 70', () => {
     for (const e of Object.values(ENEMIES)) expect(e.attack.reach).toBeGreaterThanOrEqual(70);
+  });
+});
+
+describe('siege: selling', () => {
+  beforeEach(() => { s = createGameState(); s.grapes = 1000; });
+  it('a full-HP level-0 Cork Cannon sells for 70% of 50', () => {
+    expect(sellValue(place('cork'))).toBe(35);
+  });
+  it('half HP halves the value (rounded down)', () => {
+    const t = place('cork');
+    t.hp = towerStats(t).maxHp / 2;
+    expect(sellValue(t)).toBe(17);
+  });
+  it('counts upgrades', () => {
+    const t = place('cork');
+    upgradeTower(s, t);
+    expect(sellValue(t)).toBe(70);
+  });
+  it('sellTower removes the tower and pays out', () => {
+    const t = place('cork');
+    const before = s.grapes;
+    expect(sellTower(s, t)).toBe(35);
+    expect(s.towers).not.toContain(t);
+    expect(s.grapes).toBe(before + 35);
   });
 });

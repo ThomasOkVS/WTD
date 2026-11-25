@@ -2,7 +2,7 @@
 // Phaser-free; GameScene applies the results.
 import { TOWERS } from '../config/towers.js';
 import { SIEGE } from '../config/enemies.js';
-import { spend } from './state.js';
+import { spend, earn } from './state.js';
 import { towerStats } from './towers.js';
 
 // Grapes sunk into a tower: base cost plus every upgrade bought.
@@ -129,4 +129,17 @@ export function tickAttacker(a, pos, towers, dtMs) {
       break;
   }
   return out;
+}
+
+// Selling refunds 70% of what went in, scaled by HP: selling never beats repairing.
+export function sellValue(placed) {
+  const max = towerStats(placed).maxHp;
+  return Math.floor((0.7 * investedIn(placed) * Math.max(0, placed.hp)) / max);
+}
+
+export function sellTower(state, placed) {
+  const value = sellValue(placed);
+  removeTower(state, placed);
+  earn(state, value);
+  return value;
 }

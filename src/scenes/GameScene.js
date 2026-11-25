@@ -15,7 +15,7 @@ import { createPowerUp } from '../logic/buffs.js';
 import { play } from '../fx/sound.js';
 import { startDust, shatter, splash, corkPop } from '../fx/particles.js';
 import {
-  damageTower as hurtTower, removeTower, repairTower, tickAttacker,
+  damageTower as hurtTower, removeTower, repairTower, tickAttacker, sellTower,
 } from '../logic/siege.js';
 
 const POWER = { durationMs: 10000, cooldownMs: 45000 };
@@ -73,6 +73,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('select-tower', this.selectTower, this);
     this.events.on('upgrade-tower', this.upgrade, this);
     this.events.on('repair-tower', this.repair, this);
+    this.events.on('sell-tower', this.sell, this);
     this.events.on('activate-power', this.activatePower, this);
     this.events.on('tasting-picked', this.onTastingPicked, this);
     this.events.on('pause', this.onPauseClicked, this);
@@ -347,18 +348,43 @@ export class GameScene extends Phaser.Scene {
       shatter(this, x, y - 10);
       play('shatter');
       this.cameras.main.shake(150, 0.004);
-      if (t.light) this.lighting.removeLight(t.light);
-      t.light = null;
-      t.destroy();
+      this.teardownTower(t);
       removeTower(this.state, t.placed);
-      if (this.hoverTower === t) {
-        this.hoverTower = null;
-        this.input.setDefaultCursor('default');
-        if (!this.selectedType) this.rangeRing.clear();
-      }
       this.floatText(x, y - 40, `${TOWERS[t.placed.type].name} destroyed!`, '#ff6b6b');
       this.events.emit('tower-destroyed', t.placed);
     }
+  }
+
+  // Shared by destruction and selling: light, sprite, hover state; Thomas takes his recruits along.
+  teardownTower(t) {
+    this.towers = this.towers.filter((o) => o !== t);
+    if (t.light) this.lighting.removeLight(t.light);
+    t.light = null;
+    t.destroy();
+    if (t.placed.type === 'thomas') for (const r of [...this.recruits]) this.dismissRecruit(r);
+    if (this.hoverTower === t) {
+      this.hoverTower = null;
+      this.input.setDefaultCursor('default');
+      if (!this.selectedType) this.rangeRing.clear();
+    }
+  }
+
+  sell(placed) {
+    const tower = this.towers.find((t) => t.placed.id === placed.id);
+    if (!tower || tower.dead || this.ending) return;
+    const value = sellTower(this.state, tower.placed);
+    const { x, y } = tower.stats;
+    this.teardownTower(tower);
+    const fx = this.add.particles(x, y - 20, 'spark', {
+      emitting: false, lifespan: 700, speed: { min: 60, max: 180 }, gravityY: 260, scale: { start: 0.9, end: 0 },
+      alpha: { start: 1, end: 0 }, tint: [0xffd36b, 0xe8c07a], blendMode: 'ADD',
+    }).setDepth(2660);
+    fx.explode(18);
+    this.time.delayedCall(800, () => fx.destroy());
+    this.floatText(x, y - 40, `+${value} Grapes`, '#ffd36b');
+    play('place', { pitch: 0.8 });
+    this.events.emit('tower-sold', tower.placed, value);
+    this.events.emit('grapes-changed', this.state.grapes);
   }
 
   repair(placed) {
@@ -738,6 +764,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('select-tower', this.selectTower, this);
     this.events.off('upgrade-tower', this.upgrade, this);
     this.events.off('repair-tower', this.repair, this);
+    this.events.off('sell-tower', this.sell, this);
     this.events.off('activate-power', this.activatePower, this);
     this.events.off('tasting-picked', this.onTastingPicked, this);
     this.events.off('pause', this.onPauseClicked, this);
