@@ -49,6 +49,6 @@ Parody names only, no real brands or likenesses:
 ## Assets & licences
 
 - All art is procedural (drawn in code at boot, `src/art/textures.js`).
-- All sound and music is synthesised in code with WebAudio (`src/fx/sound.js`), no audio files.
+- SFX: Kenney Impact Sounds, Interface Sounds and RPG Audio (CC0, [kenney.nl](https://kenney.nl)), see [public/audio/CREDITS.md](public/audio/CREDITS.md). Music and fallback sounds are synthesised in code with WebAudio (`src/fx/sound.js`).
 - Fonts: Cinzel and Cormorant Garamond (Google Fonts, SIL Open Font License).
 - No third-party asset packs.

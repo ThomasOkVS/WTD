@@ -1,4 +1,4 @@
-// Synthesised WebAudio SFX + moody cellar music. No assets, no Phaser.
+// WebAudio SFX (Kenney CC0 samples, synth fallback) + synthesised cellar music. No Phaser.
 // Nothing touches AudioContext at import time.
 
 let ctx = null;
@@ -14,6 +14,51 @@ let nextBeat = 0;
 let beatIndex = 0;
 let nextDrip = 0;
 const lastPlayed = {};
+const buffers = {}; // key -> decoded AudioBuffer[]; empty/missing -> synth fallback
+
+// key -> number of sample variants in public/audio/<key>-<n>.ogg
+const SAMPLES = { place: 2, cork: 3, splash: 2, hit: 3, kill: 3, leak: 1, nope: 1, click: 2, shatter: 2, wave: 1 };
+const VOLUME = { place: 0.9, cork: 0.7, splash: 0.8, hit: 0.5, kill: 0.9, leak: 1, nope: 0.6, click: 0.5, shatter: 0.9, wave: 1 };
+const JITTER = { hit: 1, cork: 1, kill: 1, splash: 1, place: 1, click: 1 }; // +-5% pitch for frequent sounds
+let samplesRequested = false;
+
+function loadSamples() {
+  if (samplesRequested || typeof fetch === 'undefined') return;
+  samplesRequested = true;
+  const base = (import.meta.env && import.meta.env.BASE_URL) || '/';
+  const c = ctx;
+  for (const key of Object.keys(SAMPLES)) {
+    for (let n = 1; n <= SAMPLES[key]; n++) {
+      (async () => {
+        try {
+          const res = await fetch(base + 'audio/' + key + '-' + n + '.ogg');
+          if (!res.ok) return;
+          const buf = await c.decodeAudioData(await res.arrayBuffer());
+          if (c === ctx) (buffers[key] || (buffers[key] = [])).push(buf);
+        } catch (e) { /* fall back to synth */ }
+      })();
+    }
+  }
+}
+
+export function sampleStats() {
+  let loaded = 0, expected = 0;
+  for (const k of Object.keys(SAMPLES)) { expected += SAMPLES[k]; loaded += (buffers[k] || []).length; }
+  return { loaded, expected };
+}
+
+function playSample(key, t, opts) {
+  const list = buffers[key];
+  if (!list || !list.length || !sfxBus) return false;
+  const s = ctx.createBufferSource();
+  s.buffer = list[Math.floor(Math.random() * list.length)];
+  s.playbackRate.value = (opts.pitch || 1) * (JITTER[key] ? rnd(0.95, 1.05) : 1);
+  const g = ctx.createGain();
+  g.gain.value = VOLUME[key] || 1;
+  s.connect(g); g.connect(sfxBus);
+  s.start(t);
+  return true;
+}
 
 const MIN_GAP_MS = { hit: 40, cork: 30, splash: 60, kill: 40, place: 40, click: 30, nope: 80, leak: 80, shatter: 80, power: 200, wave: 400, win: 1000, heartbeat: 200 };
 
@@ -34,9 +79,10 @@ export function initSound() {
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
     if (ctx.state === 'suspended') safeResume();
+    loadSamples();
     if (wantMusic) startMusic();
     return true;
-  } catch (e) { ctx = null; master = sfxBus = musicBus = noiseBuf = null; return false; }
+  } catch (e) { ctx = null; master = sfxBus = musicBus = noiseBuf = null; samplesRequested = false; return false; }
 }
 
 function safeResume() {
@@ -134,7 +180,8 @@ export function play(key, opts = {}) {
     if (now - (lastPlayed[key] || -1e9) < (MIN_GAP_MS[key] || 0)) return;
     lastPlayed[key] = now;
     if (ctx.state === 'suspended') safeResume();
-    SFX[key](ctx.currentTime + 0.005, opts);
+    const t = ctx.currentTime + 0.005;
+    if (!playSample(key, t, opts)) SFX[key](t, opts);
   } catch (e) { /* never throw */ }
 }
 
