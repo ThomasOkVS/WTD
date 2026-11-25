@@ -54,7 +54,7 @@ export class GameScene extends Phaser.Scene {
     this.spots = {};
     this.rangeRing = this.add.graphics().setDepth(2550); // placement aid: above the darkness
     for (const spot of BUILD_SPOTS) {
-      const ring = this.add.graphics().setDepth(-80).setAlpha(0);
+      const ring = this.add.graphics().setDepth(2540).setAlpha(0); // free-spot ring above the darkness so it reads in the dark bands
       this.drawSpotRing(ring, spot, false);
       this.tweens.add({ targets: ring, alpha: 1, duration: 300 });
       const zone = this.add.zone(spot.x, spot.y, 72, 72).setInteractive({ useHandCursor: true });

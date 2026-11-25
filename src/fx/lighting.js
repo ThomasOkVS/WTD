@@ -6,7 +6,7 @@ import Phaser from 'phaser';
 export const LIGHT_DEPTH = { darkness: 2500, glow: 2600, vignette: 2700 };
 
 const DARKNESS = 0x120a0d;
-const DARK_ALPHA = 0.86;
+const DARK_ALPHA = 0.82;
 const AMBER = 0xffb35c;
 const GLOW_ALPHA = 0.35;
 const FLICKER = 0.06;
@@ -59,7 +59,6 @@ export function createLighting(scene, { candles = [] } = {}) {
       l.core?.setPosition(l.x, l.y).setScale(s);
       l.sprite?.setPosition(l.x, l.y).setScale(s * 1.2);
     }
-    rt.clear();
     rt.fill(DARKNESS, 1);
     if (erasers.length) rt.erase(erasers);
     rt.render();

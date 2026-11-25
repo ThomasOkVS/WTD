@@ -27,7 +27,7 @@ export class Enemy {
     this.bar = scene.add.graphics().setVisible(false);
     scene.tweens.add({ targets: this.sprite, alpha: 1, duration: 200 });
     // small dim halo so pests stay readable between the candle pools
-    this.light = scene.lighting?.addLight(p.x, p.y, 45, 0, { strength: 0.5, glow: false });
+    this.light = scene.lighting?.addLight(p.x, p.y, 60, 0, { strength: 0.9, glow: false });
   }
 
   slow(amount, ms, now) {
