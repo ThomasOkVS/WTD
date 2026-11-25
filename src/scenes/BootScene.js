@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { generateTextures } from '../art/textures.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,7 +7,14 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    const go = () => this.scene.start('Title');
+    let started = false;
+    // Generate after fonts load so the THOMAS name plate bakes in Cinzel.
+    const go = () => {
+      if (started) return;
+      started = true;
+      generateTextures(this);
+      this.scene.start('Title');
+    };
     // document.fonts.ready alone resolves before unused webfonts are fetched,
     // so request each face explicitly. Don't hang if offline.
     const loads = Promise.all([

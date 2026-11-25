@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PALETTE } from '../config/palette.js';
+import { bindTextureGridKey } from '../art/textureGrid.js';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -18,5 +19,6 @@ export class TitleScene extends Phaser.Scene {
       .setAlpha(0);
 
     this.tweens.add({ targets: title, alpha: 1, duration: 300, ease: 'Sine.easeOut' });
+    bindTextureGridKey(this);
   }
 }
