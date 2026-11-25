@@ -31,6 +31,7 @@ const WASH_EVERY = 17000;
 const SLOW = 0.45;
 const SLOW_TINT = 0xc9a0ff;
 const GOLD = 0xffd36b;
+const PEST_SCALE = 1.15; // a touch bigger than in game: reads from the back of the room
 
 // startAttract(scene, { ui, lighting }) -> { stop }
 // ui: the title's unzoomed UI camera (attract objects are hidden from it, so
@@ -110,8 +111,10 @@ export function startAttract(scene, { ui, lighting } = {}) {
     Object.assign(p, { state: 'walk', type, hp: PESTS[type].hp, speed: PESTS[type].speed, d: 0, dir: 1, slowUntil: 0, recruitLeft: 0 });
     p.gen++;
     scene.tweens.killTweensOf(p.sprite);
-    p.sprite.setTexture(`enemy-${type}`).setVisible(true).setAlpha(0).setScale(1).clearTint();
+    p.sprite.setTexture(`enemy-${type}`).setVisible(true).setAlpha(0).setScale(PEST_SCALE).clearTint();
     scene.tweens.add({ targets: p.sprite, alpha: 1, duration: 200 });
+    // small dim halo, as in game (one erase each, no glow sprite)
+    p.light = lighting?.addLight(0, 0, 60, 0, { strength: 0.9, glow: false }) ?? null;
     place(p);
   }
 
@@ -120,10 +123,16 @@ export function startAttract(scene, { ui, lighting } = {}) {
     p.x = pos.x;
     p.y = pos.y;
     p.sprite.setPosition(pos.x, pos.y).setRotation(p.dir > 0 ? pos.angle : pos.angle + Math.PI).setDepth(pos.y);
+    if (p.light) {
+      p.light.x = pos.x;
+      p.light.y = pos.y;
+    }
   }
 
   function release(p, fade = true) {
     p.state = 'dying';
+    if (p.light) lighting.removeLight(p.light);
+    p.light = null;
     scene.tweens.killTweensOf(p.sprite);
     if (!fade) {
       p.state = 'free';
@@ -214,7 +223,7 @@ export function startAttract(scene, { ui, lighting } = {}) {
       p.dir = -1;
       p.recruitLeft = 2600;
       tintFor(p);
-      scene.tweens.add({ targets: p.sprite, scale: 1.25, duration: 160, yoyo: true, ease: 'Sine.easeOut' });
+      scene.tweens.add({ targets: p.sprite, scale: PEST_SCALE * 1.25, duration: 160, yoyo: true, ease: 'Sine.easeOut' });
     }
     return true;
   }
@@ -288,6 +297,7 @@ export function startAttract(scene, { ui, lighting } = {}) {
     scene.events.off('shutdown', stop);
     for (const go of objects) scene.tweens.killTweensOf(go);
     for (const l of lights) lighting.removeLight(l);
+    for (const p of pests) if (p.light) lighting.removeLight(p.light);
     for (const go of objects) go.destroy();
     objects.length = 0;
   }
