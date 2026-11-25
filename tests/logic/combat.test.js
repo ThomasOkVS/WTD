@@ -31,7 +31,7 @@ describe('pickTarget', () => {
 
 describe('ENEMIES', () => {
   it('has spec values', () => {
-    expect(ENEMIES.monstre).toMatchObject({ hp: 2200, speed: 45, armour: 6, reward: 200, leakCost: 10, splitInto: { type: 'can', count: 6 } });
+    expect(ENEMIES.monstre).toMatchObject({ hp: 3000, speed: 45, armour: 8, reward: 200, leakCost: 10, splitInto: { type: 'can', count: 8 }, enrage: { at: 0.5 }, summon: { type: 'can', count: 2 } });
     expect(ENEMIES.fly.leakCost).toBe(1);
     expect(ENEMIES.can.hp).toBe(80);
   });

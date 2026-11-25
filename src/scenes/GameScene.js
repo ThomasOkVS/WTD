@@ -28,7 +28,7 @@ const POWER = { durationMs: 10000, cooldownMs: 45000 };
 // Game -> HUD: grapes-changed, lives-changed, wave-started, wave-cleared,
 //   tower-placed, placement-refused, enemy-killed, tower-selected,
 //   tower-clicked, tower-upgraded, upgrade-refused, power-changed, power-refused, game-over,
-//   boss-spawned, buff-added (wine)
+//   boss-spawned, boss-enraged, buff-added (wine)
 //   tower-damaged, tower-destroyed, tower-repaired, repair-refused (enemies fight back)
 // HUD -> Game: start-wave, select-tower, upgrade-tower, repair-tower, activate-power
 // Tasting -> Game: tasting-picked (wine)
@@ -486,6 +486,8 @@ export class GameScene extends Phaser.Scene {
     if (!enemy.alive || enemy.recruited) return;
     if (!enemy.hit(damage)) {
       play('hit');
+      const enrage = ENEMIES[enemy.type].enrage;
+      if (enrage && !enemy.enraged && enemy.hp <= enrage.at * enemy.maxHp) this.enrageBoss(enemy);
       return;
     }
     play('kill');
@@ -559,6 +561,37 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ---------- Le Monstre Blanc ----------
+  enrageBoss(boss) {
+    boss.enrage();
+    this.cameras.main.shake(300, 0.01);
+    play('shatter');
+    this.sparks.explode(16, boss.x, boss.y);
+    this.floatText(boss.x, boss.y - 44, 'Furious!', '#ff6b6b');
+    this.events.emit('boss-enraged');
+  }
+
+  // While alive the boss spits cans onto the path just behind it (scene time,
+  // per boss: nothing survives a restart or the boss's death).
+  updateSummons(dtMs) {
+    for (const boss of this.enemies) {
+      const summon = ENEMIES[boss.type].summon;
+      if (!summon || !boss.alive || boss.recruited) continue;
+      boss.summonIn -= dtMs;
+      if (boss.summonIn > 0) continue;
+      boss.summonIn = summon.everyMs;
+      for (let i = 0; i < summon.count; i++) {
+        const can = this.spawnEnemy(summon.type, Math.max(0, boss.distance - 30 - 20 * i), this.waveHpMult, this.waveSpeedMult);
+        can.update(0, this.clock);
+        this.tweens.killTweensOf(can.sprite);
+        can.sprite.setAlpha(1).setScale(0.2);
+        this.tweens.add({ targets: can.sprite, scale: 1, duration: 260, delay: i * 40, ease: 'Back.easeOut' });
+      }
+      this.sparks.explode(10, boss.x, boss.y);
+      play('hit', { pitch: 0.6 });
+      this.floatText(boss.x, boss.y - 44, 'Sugar rush!', '#e9dcc0');
+    }
+  }
+
   // Cans are pushed synchronously so the last wave can't clear on the boss kill.
   splitBoss(boss) {
     const { type, count } = ENEMIES[boss.type].splitInto;
@@ -791,6 +824,7 @@ export class GameScene extends Phaser.Scene {
       if (this.state.status === 'lost') return this.endGame('lost');
     }
     this.enemyAttacks(dt * 1000);
+    this.updateSummons(dt * 1000);
 
     this.updateRecruits(dt);
     this.updateAuto((dt * 1000) / this.speed); // the countdown is 3 real seconds, also at 2x

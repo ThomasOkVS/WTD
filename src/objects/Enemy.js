@@ -20,6 +20,8 @@ export class Enemy {
     this.alive = true;
     this.recruited = false;
     this.boss = type === 'monstre';
+    this.enraged = false;
+    this.summonIn = cfg.summon ? cfg.summon.firstMs : Infinity; // boss only: ms to the next can summon
     this.barW = this.boss ? 84 : 28;
     this.slowFactor = 1;
     this.slowUntil = 0;
@@ -56,6 +58,14 @@ export class Enemy {
     this.scene.tweens.add({ targets: this.sprite, scale: 1.25, duration: 160, yoyo: true, ease: 'Sine.easeOut' });
   }
 
+  // Boss: one-way switch to furious. Copies the attack cfg (shared config stays untouched).
+  enrage() {
+    const { enrage } = ENEMIES[this.type];
+    this.enraged = true;
+    this.speed *= enrage.speedMult;
+    if (this.attacker) this.attacker.cfg = { ...this.attacker.cfg, cooldownMs: enrage.slamCooldownMs };
+  }
+
   slow(amount, ms, now) {
     this.slowFactor = Math.min(this.slowFactor, 1 - amount);
     this.slowUntil = Math.max(this.slowUntil, now + ms);
@@ -75,6 +85,7 @@ export class Enemy {
       this.light.y = p.y;
     }
     if (this.recruited) this.sprite.setTint(GOLD);
+    else if (this.enraged) this.sprite.setTint(0xff5a4a); // furious wins over the slow tint
     else if (this.slowFactor < 1) this.sprite.setTint(0xc9a0ff);
     else this.sprite.clearTint();
     if (this.bar.visible) this.drawBar();

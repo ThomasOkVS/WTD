@@ -92,6 +92,7 @@ export class HUDScene extends Phaser.Scene {
       this.refreshPreview(this.preview.visible);
     });
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
+    this.listen('boss-enraged', () => this.banner('Le Monstre Blanc is furious!', 'Sugar rush incoming'));
     this.listen('buff-added', (wine) => this.banner(`Buff: ${wine.name}`, describeEffect(wine.effect).replace('\n', ', ')));
     this.listen('game-over', () => {
       this.input.enabled = false; // nothing clickable during the fade-out
