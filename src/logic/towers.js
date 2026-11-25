@@ -33,6 +33,7 @@ export function placeTower(state, towerType, pos) {
   if (!canPlace(state, towerType, pos).ok) return null;
   spend(state, TOWERS[towerType].cost);
   const tower = { id: nextId++, type: towerType, x: pos.x, y: pos.y, level: 0 };
+  tower.hp = towerStats(tower).maxHp;
   state.towers.push(tower);
   return tower;
 }
@@ -40,7 +41,9 @@ export function placeTower(state, towerType, pos) {
 export function upgradeTower(state, tower) {
   const next = TOWERS[tower.type].upgrades[tower.level];
   if (!next || !spend(state, next.cost)) return false;
+  const before = towerStats(tower).maxHp;
   tower.level += 1;
+  tower.hp += towerStats(tower).maxHp - before;
   return true;
 }
 

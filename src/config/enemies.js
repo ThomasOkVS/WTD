@@ -7,3 +7,6 @@ export const ENEMIES = {
   monstre: { hp: 2200, speed: 45, armour: 6, reward: 200, leakCost: 10, splitInto: { type: 'can', count: 6 } },
   can: { hp: 80, speed: 110, armour: 2, reward: 4, leakCost: 1 },
 };
+
+// Pests fight back: global tuning for tower damage and repair pricing.
+export const SIEGE = { damageMult: 1, repairShare: 0.5 };
