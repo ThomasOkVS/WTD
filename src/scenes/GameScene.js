@@ -575,7 +575,7 @@ export class GameScene extends Phaser.Scene {
 
   floatText(x, y, msg, color = '#e8c07a') {
     const t = this.add
-      .text(x, y, msg, { fontFamily: 'Cinzel, serif', fontStyle: '700', fontSize: '16px', color, stroke: '#120a0d', strokeThickness: 3 })
+      .text(x, y, msg, { fontFamily: 'Cinzel, serif', fontStyle: '700', fontSize: '16px', color, stroke: '#120a0d', strokeThickness: 3, resolution: 2 })
       .setOrigin(0.5)
       .setDepth(3000);
     this.tweens.add({ targets: t, y: y - 28, alpha: 0, duration: 700, ease: 'Sine.easeOut', onComplete: () => t.destroy() });

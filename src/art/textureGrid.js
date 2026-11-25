@@ -29,6 +29,7 @@ export function toggleTextureGrid(scene) {
           fontStyle: '700',
           fontSize: '16px',
           color: PALETTE.parchment,
+          resolution: 2, // sharp on the HD canvas
         })
         .setOrigin(0.5),
     );
