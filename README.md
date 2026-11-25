@@ -47,7 +47,7 @@ Presenter shortcuts. They work in the dev and production builds and have no on-s
 
 Except `M`, the keys are ignored while the Wine Tasting is open (the cellar is paused) and after game over. Digits use the physical number row (no Shift needed on AZERTY).
 
-Demo script (under 2 minutes): Play → `G` `G` `G` → place towers (incl. Thomas) and upgrade a few → `1` → wave cleared, Wine Tasting → `D` → click a tower → Repair (the pests fight back) → `W` for a second tasting → `7` (the last wave brings Le Monstre Blanc on its own) → fire Taureau Rouge as the boss enters → Le Monstre Blanc splits into cans → End screen. Use `B` only to show the boss early on an empty field, never on top of wave 7.
+Demo script (under 2 minutes): Play → `G` `G` `G` → place towers (incl. Thomas) and upgrade a few → `1` → wave cleared, Wine Tasting → pick a wine → `D` → click a tower → Repair (the pests fight back) → `W` for a second tasting → `7` (the last wave brings Le Monstre Blanc on its own) → fire Taureau Rouge as the boss enters → Le Monstre Blanc splits into cans → End screen. Use `B` only to show the boss early on an empty field, never on top of wave 7.
 
 ## Nexios references
 

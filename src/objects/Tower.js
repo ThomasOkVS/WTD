@@ -146,6 +146,7 @@ export class Tower {
     this.scene.tweens.killTweensOf(this.sprite);
     this.sprite.destroy();
     this.hpBar.destroy();
+    if (this.auraRing) this.scene.tweens.killTweensOf(this.auraRing); // Thomas can die mid-run now
     this.auraRing?.destroy();
   }
 }
