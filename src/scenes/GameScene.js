@@ -506,7 +506,7 @@ export class GameScene extends Phaser.Scene {
     const { type, count } = ENEMIES[boss.type].splitInto;
     for (let i = 0; i < count; i++) {
       const off = count > 1 ? -40 + (80 * i) / (count - 1) : 0;
-      const can = this.spawnEnemy(type, Math.min(this.path.length - 1, Math.max(0, boss.distance + off)));
+      const can = this.spawnEnemy(type, Math.min(this.path.length - 1, Math.max(0, boss.distance + off)), this.waveHpMult);
       can.update(0, this.clock); // place it now, not at the entrance
       this.tweens.killTweensOf(can.sprite);
       can.sprite.setAlpha(1).setScale(0.2);
@@ -733,7 +733,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyAttacks(dt * 1000);
 
     this.updateRecruits(dt);
-    this.updateAuto(dt * 1000);
+    this.updateAuto((dt * 1000) / this.speed); // the countdown is 3 real seconds, also at 2x
     // Le Monstre Blanc's footsteps rattle the cellar
     if (this.enemies.some((e) => e.boss)) {
       this.shakeIn -= dt * 1000;

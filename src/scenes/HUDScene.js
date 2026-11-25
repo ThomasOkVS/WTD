@@ -301,7 +301,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   onWaveCleared(i) {
-    if (i < WAVES.length - 1 || i >= WAVES.length) {
+    if (i !== WAVES.length - 1 || this.endless) {
       this.refreshPreview(true);
       this.nextBtn.setEnabled(true);
       this.banner(`Wave ${i + 1} cleared`, 'Build, then call the next wave');
