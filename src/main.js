@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
+import { GameScene } from './scenes/GameScene.js';
+import { EndScene } from './scenes/EndScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -9,7 +11,7 @@ const game = new Phaser.Game({
   parent: 'game',
   backgroundColor: '#120a0d',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene],
+  scene: [BootScene, TitleScene, GameScene, EndScene],
 });
 
 if (import.meta.env.DEV) window.__game = game;

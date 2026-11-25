@@ -19,6 +19,21 @@ export class TitleScene extends Phaser.Scene {
       .setAlpha(0);
 
     this.tweens.add({ targets: title, alpha: 1, duration: 300, ease: 'Sine.easeOut' });
+
+    const play = this.add
+      .text(640, 470, 'Play', {
+        fontFamily: 'Cinzel, serif',
+        fontStyle: '700',
+        fontSize: '44px',
+        color: PALETTE.amber,
+      })
+      .setOrigin(0.5)
+      .setAlpha(0)
+      .setInteractive({ useHandCursor: true });
+    play.on('pointerover', () => play.setColor(PALETTE.candleGold));
+    play.on('pointerout', () => play.setColor(PALETTE.amber));
+    play.on('pointerdown', () => this.scene.start('Game'));
+    this.tweens.add({ targets: play, alpha: 1, duration: 300, delay: 200, ease: 'Sine.easeOut' });
     bindTextureGridKey(this);
   }
 }
