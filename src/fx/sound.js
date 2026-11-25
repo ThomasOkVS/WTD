@@ -8,6 +8,7 @@ let musicBus = null;
 let noiseBuf = null;
 let muted = false;
 let musicOn = false;
+let wantMusic = false;
 let musicTimer = null;
 let nextBeat = 0;
 let beatIndex = 0;
@@ -24,16 +25,22 @@ export function initSound() {
       ctx = new AC();
       master = ctx.createGain();
       master.gain.value = muted ? 0 : 1;
-      master.connect(ctx.destination);
+      const comp = ctx.createDynamicsCompressor();
+      master.connect(comp); comp.connect(ctx.destination);
       sfxBus = ctx.createGain(); sfxBus.gain.value = 0.5; sfxBus.connect(master);
       musicBus = ctx.createGain(); musicBus.gain.value = 0.08; musicBus.connect(master);
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended') safeResume();
+    if (wantMusic) startMusic();
     return true;
-  } catch (e) { return false; }
+  } catch (e) { ctx = null; master = sfxBus = musicBus = noiseBuf = null; return false; }
+}
+
+function safeResume() {
+  try { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ }
 }
 
 export function setMuted(m) {
@@ -113,7 +120,7 @@ export function play(key, opts = {}) {
     const now = performance.now();
     if (now - (lastPlayed[key] || -1e9) < (MIN_GAP_MS[key] || 0)) return;
     lastPlayed[key] = now;
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended') safeResume();
     SFX[key](ctx.currentTime + 0.005, opts);
   } catch (e) { /* never throw */ }
 }
@@ -163,7 +170,7 @@ function scheduleBeat(t, idx) {
 
 function scheduler() {
   if (!musicOn || !ctx) return;
-  const horizon = ctx.currentTime + 0.4;
+  const horizon = ctx.currentTime + 1.2;
   while (nextBeat < horizon) {
     scheduleBeat(nextBeat, beatIndex);
     nextBeat += BEAT; beatIndex++;
@@ -177,6 +184,7 @@ function scheduler() {
 
 export function startMusic() {
   try {
+    wantMusic = true;
     if (!ctx || musicOn) return;
     musicOn = true;
     beatIndex = 0;
@@ -193,6 +201,7 @@ export function startMusic() {
 export function stopMusic() {
   try {
     musicOn = false;
+    wantMusic = false;
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
     if (ctx && musicBus) {
       // fade the old bus out, swap in a fresh one so already-scheduled notes die with it
