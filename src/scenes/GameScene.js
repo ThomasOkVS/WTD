@@ -21,17 +21,10 @@ const POWER = { durationMs: 10000, cooldownMs: 45000 };
 // (off(name, fn, ctx)); never off(name) here, it would wipe the HUD's too.
 // Game -> HUD: grapes-changed, lives-changed, wave-started, wave-cleared,
 //   tower-placed, placement-refused, enemy-killed, tower-selected,
-//   tower-clicked, tower-upgraded, upgrade-refused, power-changed, game-over,
+//   tower-clicked, tower-upgraded, upgrade-refused, power-changed, power-refused, game-over,
 //   boss-spawned, buff-added (wine)
 // HUD -> Game: start-wave, select-tower, upgrade-tower, activate-power
 // Tasting -> Game: tasting-picked (wine)
-export const GAME_EVENTS = [
-  'grapes-changed', 'lives-changed', 'wave-started', 'wave-cleared', 'tower-placed',
-  'placement-refused', 'enemy-killed', 'start-wave', 'select-tower', 'upgrade-tower',
-  'tower-selected', 'tower-clicked', 'tower-upgraded', 'upgrade-refused',
-  'activate-power', 'power-changed', 'game-over', 'boss-spawned', 'buff-added', 'tasting-picked',
-];
-
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('Game');
@@ -327,6 +320,11 @@ export class GameScene extends Phaser.Scene {
 
   activatePower() {
     if (this.ending || this.tastingOpen) return;
+    if (!this.runner && this.enemies.length === 0) { // between waves: save it for the pests
+      play('nope');
+      this.events.emit('power-refused');
+      return;
+    }
     if (!this.powerUp.activate()) {
       play('nope');
       return;
@@ -344,7 +342,8 @@ export class GameScene extends Phaser.Scene {
 
   updatePower(dtMs) {
     const p = this.powerUp;
-    p.tick(dtMs, { paused: false });
+    const idle = !this.runner && this.enemies.length === 0;
+    p.tick(dtMs, { paused: idle && !p.active }); // a running burst finishes; cooldown freezes between waves
     if (p.active) {
       this.heartbeatIn -= dtMs;
       if (this.heartbeatIn <= 0) {

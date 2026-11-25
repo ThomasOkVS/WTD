@@ -34,7 +34,7 @@ export class EndScene extends Phaser.Scene {
     const bottle = this.add.image(640, 236, 'grand-cru').setOrigin(0.5, 0.9).setScale(1.7).setDepth(3001);
     enter(this, bottle, { dy: -16, duration: 300 });
     this.tweens.add({ targets: halo, alpha: 0.55, duration: 400 });
-    if (won) this.celebrate(bottle, halo);
+    if (won) { play('win'); this.celebrate(bottle, halo); }
     else this.time.delayedCall(650, () => this.shatter(bottle, halo));
 
     const c = this.add.container(640, 462).setDepth(3100);

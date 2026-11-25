@@ -15,7 +15,7 @@ let beatIndex = 0;
 let nextDrip = 0;
 const lastPlayed = {};
 
-const MIN_GAP_MS = { hit: 40, cork: 30, splash: 60, kill: 40, place: 40, click: 30, nope: 80, leak: 80, shatter: 80, power: 200, wave: 400, heartbeat: 200 };
+const MIN_GAP_MS = { hit: 40, cork: 30, splash: 60, kill: 40, place: 40, click: 30, nope: 80, leak: 80, shatter: 80, power: 200, wave: 400, win: 1000, heartbeat: 200 };
 
 export function initSound() {
   try {
@@ -106,6 +106,18 @@ const SFX = {
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
       o.connect(fl); fl.connect(g); g.connect(sfxBus); o.start(t + 0.1); o.stop(t + 0.95);
     });
+  },
+  win(t) { // warm major swell (C-E-G-C), soft saw/triangle through a lowpass; no bell
+    [130.81, 196.0, 261.63, 329.63, 392.0, 523.25].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
+      o.type = i % 2 ? 'triangle' : 'sawtooth'; o.frequency.value = f; o.detune.value = i * 3 - 7;
+      fl.type = 'lowpass'; fl.frequency.setValueAtTime(400, t); fl.frequency.linearRampToValueAtTime(1800, t + 0.7);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.14, t + 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+      o.connect(fl); fl.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 1.85);
+    });
+    noise(t, 0.4, 0.15, { f0: 300, f1: 1500, attack: 0.2 });
   },
   click(t) { tone('square', 900, 700, t, 0.025, 0.12); },
   power(t) {

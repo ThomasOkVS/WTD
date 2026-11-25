@@ -24,7 +24,7 @@ const C = {
   iron: '#2a2220',
   ironHi: '#6a5a50',
   glassDark: '#1c0a10',
-  monsterGreen: '#6dff7a',
+  clawGreen: '#6dff7a',
   bluePlum: '#1f3f9a',
   flame: '#fff3c4',
 };
@@ -473,7 +473,7 @@ function clawMarks(ctx, x, y, len, spread, width) {
     ctx.quadraticCurveTo(mx + nx * 2, my + ny * 2, ex, ey);
     ctx.quadraticCurveTo(mx - nx * 2, my - ny * 2, sx, sy);
     ctx.closePath();
-    ctx.shadowColor = C.monsterGreen;
+    ctx.shadowColor = C.clawGreen;
     ctx.shadowBlur = width * 3;
     ctx.fillStyle = '#2fd14a';
     ctx.fill();

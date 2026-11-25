@@ -13,6 +13,7 @@ const game = new Phaser.Game({
   height: 720,
   parent: 'game',
   backgroundColor: '#120a0d',
+  audio: { noAudio: true }, // we synthesise our own WebAudio (src/fx/sound.js)
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   // HUD after Game: array order is render order, so the HUD draws on top.
   // Tasting after HUD: the modal draws (and takes input) above both.

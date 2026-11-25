@@ -135,6 +135,7 @@ export class TastingScene extends Phaser.Scene {
     play('click');
     this.say(card.wine.line);
     for (const c of this.cards) {
+      this.tweens.killTweensOf(c);
       if (c === card) {
         this.tweens.add({ targets: c, scale: 1.08, duration: 180, yoyo: true, ease: 'Sine.easeOut' });
       } else {

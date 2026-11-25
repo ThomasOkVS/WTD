@@ -35,9 +35,12 @@ export class HUDScene extends Phaser.Scene {
     this.listeners = [];
     this.selected = null;
     this.thomasPlaced = false;
-    this.waveRunning = false;
     this.shownGrapes = this.grapes;
     this.upgradeFor = null;
+    this.upgradeUi = null;
+    this.bannerBox = null;
+    this.bannerChain = null;
+    this.toastChain = null;
 
     this.createTop();
     this.createBar();
@@ -56,6 +59,7 @@ export class HUDScene extends Phaser.Scene {
     this.listen('tower-upgraded', this.onUpgraded);
     this.listen('upgrade-refused', this.onUpgradeRefused);
     this.listen('power-changed', this.setPower);
+    this.listen('power-refused', () => this.showToast('Save it for the pests!'));
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
     this.listen('buff-added', (wine) => this.banner(`Buff: ${wine.name}`, describeEffect(wine.effect).replace('\n', ', ')));
     this.listen('game-over', () => {
@@ -199,14 +203,12 @@ export class HUDScene extends Phaser.Scene {
 
   onWaveStarted(i) {
     this.wave = i + 1;
-    this.waveRunning = true;
     this.updateWaveText();
     this.nextBtn.setEnabled(false);
     this.banner(`Wave ${i + 1}`, i === WAVES.length - 1 ? 'Le Monstre Blanc stirs' : `of ${WAVES.length}`);
   }
 
   onWaveCleared(i) {
-    this.waveRunning = false;
     if (i < WAVES.length - 1) {
       this.nextBtn.setEnabled(true);
       this.banner(`Wave ${i + 1} cleared`, 'Build, then call the next wave');
@@ -403,6 +405,7 @@ export class HUDScene extends Phaser.Scene {
 
   setPower({ ready = false, active = false, fraction = 0 } = {}) {
     const wasReady = this.power.ready;
+    const wasActive = this.power.active;
     this.power = { ready, active, fraction };
     const { cover, can, glow, r } = this.powerUi;
     cover.clear();
@@ -420,11 +423,14 @@ export class HUDScene extends Phaser.Scene {
       this.tweens.killTweensOf(glow);
       this.tweens.add({ targets: glow, alpha: 0.35, duration: 250 });
     }
-    if (active) {
+    if (active && !wasActive) {
       this.tweens.killTweensOf(glow);
       glow.setAlpha(0.8);
       this.tweens.add({ targets: glow, alpha: 0.3, duration: 260, yoyo: true, repeat: -1 });
-    } else if (!ready) {
+    } else if (!active && wasActive && !ready) {
+      this.tweens.killTweensOf(glow);
+      this.tweens.add({ targets: glow, alpha: 0, duration: 200 });
+    } else if (!active && !ready && wasReady) {
       this.tweens.killTweensOf(glow);
       this.tweens.add({ targets: glow, alpha: 0, duration: 200 });
     }
