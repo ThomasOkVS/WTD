@@ -15,7 +15,8 @@ export class TitleScene extends Phaser.Scene {
 
   create() {
     this.starting = false; // scene instances are reused
-    drawCellar(this); // lit-cellar backdrop
+    // lit-cellar backdrop; no Grand Cru: at the title zoom it sat cut off at the right edge
+    drawCellar(this, { grandCru: false });
     const backdrop = this.children.list.slice();
 
     // Main camera drifts slowly across the zoomed-in cellar; a second,
@@ -89,10 +90,13 @@ export class TitleScene extends Phaser.Scene {
 
     const play = button(this, 640, 548, 220, 64, 'Play', () => this.start(play), { size: 30 });
     enter(this, play, { dy: 18, duration: 260, delay: 320 });
-    const hint = this.add.text(640, 610, 'Defend the Grand Cru from seven waves of pests', body(19, PALETTE.candleGold)).setOrigin(0.5);
+    const hint = this.add.text(640, 610, 'Hold seven waves, then pour on into Endless', body(19, PALETTE.candleGold)).setOrigin(0.5);
     hint.setShadow(0, 2, '#120a0d', 6, false, true);
     enter(this, hint, { duration: 300, delay: 480, alpha: 0.85 });
-    return [c, play, hint];
+    const keys = this.add.text(640, 642, 'Click a card, click the floor to build  ·  P pause  ·  F speed  ·  M mute', body(16, PALETTE.parchment)).setOrigin(0.5);
+    keys.setShadow(0, 2, '#120a0d', 6, false, true);
+    enter(this, keys, { duration: 300, delay: 560, alpha: 0.75 });
+    return [c, play, hint, keys];
   }
 
   start(play) {
