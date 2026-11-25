@@ -3,6 +3,7 @@ import { PALETTE, COLORS } from '../config/palette.js';
 import { WAVES } from '../config/waves.js';
 import { drawCellar } from '../fx/cellar.js';
 import { serif, body, panel, button, enter } from '../ui/kit.js';
+import { play } from '../fx/sound.js';
 
 // data: { result: 'won'|'lost', wave, kills }
 export class EndScene extends Phaser.Scene {
@@ -55,6 +56,7 @@ export class EndScene extends Phaser.Scene {
   shatter(bottle, halo) {
     const { x } = bottle;
     const y = bottle.y - 70;
+    play('shatter');
     this.cameras.main.shake(260, 0.008);
     this.cameras.main.flash(160, 255, 200, 170);
     this.tweens.add({ targets: bottle, scale: 1.9, alpha: 0, duration: 90 });

@@ -1,3 +1,6 @@
+import { play } from '../fx/sound.js';
+import { splash } from '../fx/particles.js';
+
 const SPEED = 520; // px/s
 
 // Homing projectile. If the target dies mid-flight it flies on to the last
@@ -38,6 +41,8 @@ export class Projectile {
       for (const e of [...scene.enemies]) {
         if (Math.hypot(e.x - this.tx, e.y - this.ty) <= this.splash) scene.damageEnemy(e, this.damage);
       }
+      play('splash');
+      splash(scene, this.tx, this.ty);
       const ring = scene.add.circle(this.tx, this.ty, this.splash, 0x8a1c2b, 0.35).setDepth(1999).setScale(0.3);
       scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 260, onComplete: () => ring.destroy() });
     } else if (this.target.alive && !this.target.recruited) {

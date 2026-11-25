@@ -533,7 +533,7 @@ function enemyMonstre(ctx, w, h) {
   ctx.stroke();
 }
 
-// Small white "Monster can" lying along x, top pointing right.
+// Small white "Le Monstre Blanc can" lying along x, top pointing right.
 function enemyCan(ctx, w, h) {
   const cy = h / 2, left = 4, right = w - 4, r = h / 2 - 3;
   softShadow(ctx, w / 2 + 2, cy + 4, 18, 8, 0.6);

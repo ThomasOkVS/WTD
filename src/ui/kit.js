@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PALETTE, COLORS } from '../config/palette.js';
+import { play } from '../fx/sound.js';
 
 // Shared wine-label UI pieces: parchment panels, serif type, buttons with a
 // candle glow on hover. Used by the HUD, Title and End scenes.
@@ -77,6 +78,7 @@ export function button(scene, x, y, w, h, label, onClick, { size = 24 } = {}) {
     if (!c.enabled) return;
     scene.tweens.add({ targets: c, scale: 0.96, duration: 70, yoyo: true });
     onClick();
+    play('click'); // after onClick: Title's Play is what starts the audio
   });
   c.setEnabled = (on) => {
     c.enabled = on;

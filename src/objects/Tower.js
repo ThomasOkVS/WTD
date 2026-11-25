@@ -3,6 +3,8 @@ import { pickTarget } from '../logic/combat.js';
 import { towerStats } from '../logic/towers.js';
 import { applyBuffs } from '../logic/buffs.js';
 import { Projectile } from './Projectile.js';
+import { play } from '../fx/sound.js';
+import { corkPop } from '../fx/particles.js';
 
 // Placed tower (state object) -> merged stats (+ Wine Tasting buffs) + its build-spot position.
 export function towerInfo(placed, buffs = []) {
@@ -72,6 +74,10 @@ export class Tower {
       g.lineStyle(3, 0x8a1c2b, 0.8).lineBetween(s.x, s.y - 10, target.x, target.y);
       this.scene.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
       return;
+    }
+    if (s.type === 'cork') {
+      play('cork', { pitch: 0.9 + Math.random() * 0.2 });
+      corkPop(this.scene, s.x, s.y - 18);
     }
     this.scene.projectiles.push(
       new Projectile(this.scene, s.x, s.y - 14, target, {

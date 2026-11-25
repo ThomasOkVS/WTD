@@ -12,6 +12,7 @@ import { drawCellar } from '../fx/cellar.js';
 import { ENEMIES } from '../config/enemies.js';
 import { createPowerUp } from '../logic/buffs.js';
 import { play } from '../fx/sound.js';
+import { startDust, shatter } from '../fx/particles.js';
 
 const POWER = { durationMs: 10000, cooldownMs: 45000 };
 
@@ -61,6 +62,7 @@ export class GameScene extends Phaser.Scene {
     this.lighting = drawCellar(this);
     this.createSpots();
     this.createPowerFx();
+    startDust(this);
 
     this.events.on('start-wave', this.startWave, this);
     this.events.on('select-tower', this.selectTower, this);
@@ -68,7 +70,8 @@ export class GameScene extends Phaser.Scene {
     this.events.on('activate-power', this.activatePower, this);
     this.events.on('tasting-picked', this.onTastingPicked, this);
     this.input.keyboard.on('keydown-ESC', this.onEsc, this);
-    if (import.meta.env.DEV) this.input.keyboard.on('keydown-B', this.devBoss, this);
+    // Presenter keys: work in the production build too, no UI.
+    this.input.keyboard.on('keydown', this.onDemoKey, this);
     this.events.once('shutdown', this.cleanup, this);
 
     // HUD runs in parallel and talks to Game only through this.events.
@@ -122,6 +125,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.selectedType) return;
     const check = canPlace(this.state, this.selectedType, spot.id);
     if (!check.ok) {
+      play('nope');
       this.events.emit('placement-refused', check.reason);
       return;
     }
@@ -132,6 +136,7 @@ export class GameScene extends Phaser.Scene {
     this.spots[spot.id].ring.setVisible(false);
     this.rangeRing.clear();
     this.events.emit('grapes-changed', this.state.grapes);
+    play('place');
     this.events.emit('tower-placed', placed);
     this.selectTower(this.selectedType); // deselect after building
   }
@@ -151,10 +156,12 @@ export class GameScene extends Phaser.Scene {
     if (!tower) return;
     if (!upgradeTower(this.state, tower.placed)) {
       const maxed = tower.placed.level >= TOWERS[placed.type].upgrades.length;
+      play('nope');
       this.events.emit('upgrade-refused', maxed ? 'max' : 'grapes');
       return;
     }
     tower.refresh();
+    play('place', { pitch: 1.25 });
     this.events.emit('grapes-changed', this.state.grapes);
     this.events.emit('tower-upgraded', tower.placed);
   }
@@ -164,12 +171,17 @@ export class GameScene extends Phaser.Scene {
     this.waveIndex = this.state.wave;
     this.state.wave += 1;
     this.runner = createWaveRunner(buildSchedule(WAVES[this.waveIndex]));
+    play('wave');
     this.events.emit('wave-started', this.waveIndex);
   }
 
   damageEnemy(enemy, damage) {
     if (!enemy.alive || enemy.recruited) return;
-    if (!enemy.hit(damage)) return;
+    if (!enemy.hit(damage)) {
+      play('hit');
+      return;
+    }
+    play('kill');
     this.removeEnemy(enemy, true);
     this.kills += 1;
     const reward = Math.round(enemy.reward * this.rewardMult());
@@ -196,8 +208,8 @@ export class GameScene extends Phaser.Scene {
   splitBoss(boss) {
     const { type, count } = ENEMIES[boss.type].splitInto;
     for (let i = 0; i < count; i++) {
-      const off = count > 1 ? -20 + (40 * i) / (count - 1) : 0;
-      const can = this.spawnEnemy(type, Math.max(0, boss.distance + off));
+      const off = count > 1 ? -40 + (80 * i) / (count - 1) : 0;
+      const can = this.spawnEnemy(type, Math.min(this.path.length - 1, Math.max(0, boss.distance + off)));
       can.update(0, this.clock); // place it now, not at the entrance
       this.tweens.killTweensOf(can.sprite);
       can.sprite.setAlpha(1).setScale(0.2);
@@ -207,12 +219,47 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(180, 233, 220, 192);
     play('shatter');
     this.sparks.explode(28, boss.x, boss.y);
+    shatter(this, boss.x, boss.y);
     this.floatText(boss.x, boss.y - 44, 'Le Monstre Blanc splits!', '#e9dcc0');
   }
 
-  devBoss() {
-    if (this.ending || this.tastingOpen) return;
-    this.spawnEnemy('monstre');
+  // ---------- presenter keys (undocumented on screen) ----------
+  // 1-7 jump to that wave, B Le Monstre Blanc, G +500 Grapes,
+  // W Wine Tasting, R charge Taureau Rouge. Dead while Game is paused
+  // (Tasting open): a paused scene's keyboard doesn't fire.
+  onDemoKey(e) {
+    if (e.repeat || this.ending || this.tastingOpen) return;
+    const k = e.key.toLowerCase();
+    if (k >= '1' && k <= '7') this.jumpToWave(Number(k));
+    else if (k === 'b') this.spawnEnemy('monstre');
+    else if (k === 'g') {
+      earn(this.state, 500);
+      this.floatText(640, 110, '+500 Grapes', '#ffd36b');
+      this.events.emit('grapes-changed', this.state.grapes);
+    } else if (k === 'w') this.openTasting();
+    else if (k === 'r') {
+      if (this.powerUp.active) return;
+      this.powerUp = createPowerUp(POWER);
+      this.emitPower();
+    }
+  }
+
+  jumpToWave(n) {
+    for (const e of [...this.enemies]) this.removeEnemy(e, false);
+    for (const p of this.projectiles) p.destroy();
+    this.projectiles = [];
+    for (const r of [...this.recruits]) this.dismissRecruit(r);
+    this.runner = null;
+    this.state.wave = Math.min(WAVES.length, n) - 1;
+    this.startWave();
+  }
+
+  // Thomas's Annual Wine Tasting: modal, Game paused until a wine is picked
+  openTasting() {
+    if (this.tastingOpen || this.ending) return;
+    this.tastingOpen = true;
+    this.scene.launch('Tasting');
+    this.scene.pause();
   }
 
   // ---------- Thomas Recruit ----------
@@ -348,6 +395,7 @@ export class GameScene extends Phaser.Scene {
       e.update(dt, this.clock);
       if (!e.leaked) continue;
       this.removeEnemy(e, false);
+      play('leak');
       loseLives(this.state, e.leakCost);
       this.cameras.main.shake(120, 0.004);
       this.events.emit('lives-changed', this.state.lives);
@@ -382,10 +430,7 @@ export class GameScene extends Phaser.Scene {
         this.state.status = 'won';
         this.endGame('won');
       } else {
-        // Thomas's Annual Wine Tasting: modal, Game paused until a wine is picked
-        this.tastingOpen = true;
-        this.scene.launch('Tasting');
-        this.scene.pause();
+        this.openTasting();
       }
     }
   }
@@ -406,7 +451,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('activate-power', this.activatePower, this);
     this.events.off('tasting-picked', this.onTastingPicked, this);
     this.input.keyboard.off('keydown-ESC', this.onEsc, this);
-    this.input.keyboard.off('keydown-B', this.devBoss, this);
+    this.input.keyboard.off('keydown', this.onDemoKey, this);
     this.scene.stop('HUD');
     this.scene.stop('Tasting');
     for (const r of this.recruits) r.destroy();

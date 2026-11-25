@@ -48,6 +48,7 @@ export function setMuted(m) {
   try { if (master) master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.02); } catch (e) { /* ignore */ }
 }
 export function isMuted() { return muted; }
+export function toggleMuted() { setMuted(!muted); return muted; }
 
 // ---- primitives ----
 function tone(type, f0, f1, t, dur, vol, dest = sfxBus) {

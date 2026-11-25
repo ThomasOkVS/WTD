@@ -5,6 +5,7 @@ import { BUILD_SPOTS } from '../config/map.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
 import { describeEffect } from './TastingScene.js';
+import { play, isMuted, setMuted } from '../fx/sound.js';
 
 const CARD_W = 168, CARD_H = 92, CARD_Y = 664;
 const TOAST = {
@@ -41,6 +42,7 @@ export class HUDScene extends Phaser.Scene {
     this.createTop();
     this.createBar();
     this.createPower();
+    this.createMute();
     this.toast = this.createToast();
 
     this.listen('grapes-changed', this.onGrapes);
@@ -114,6 +116,49 @@ export class HUDScene extends Phaser.Scene {
     this.livesPanel = r;
     this.updateWaveText();
     enter(this, r, { dy: -24, delay: 60, duration: 280 });
+  }
+
+  // Small speaker toggle next to the grapes panel; M does the same (main.js).
+  createMute() {
+    const c = this.add.container(244, 45);
+    const g = this.add.graphics();
+    const hit = this.add.zone(0, 0, 40, 40).setInteractive({ useHandCursor: true });
+    c.add([g, hit]);
+    this.muteUi = { c, g, hover: false, shown: null };
+    hit.on('pointerdown', () => {
+      setMuted(!isMuted());
+      play('click');
+      this.tweens.add({ targets: c, scale: 0.9, duration: 70, yoyo: true });
+    });
+    hit.on('pointerover', () => { this.muteUi.hover = true; this.drawMute(); });
+    hit.on('pointerout', () => { this.muteUi.hover = false; this.drawMute(); });
+    this.drawMute();
+    enter(this, c, { dy: -24, delay: 120, duration: 280 });
+  }
+
+  drawMute() {
+    const { g, hover } = this.muteUi;
+    const muted = isMuted();
+    this.muteUi.shown = muted;
+    const gold = COLORS.candleGold;
+    g.clear();
+    g.fillStyle(0x120a0d, 0.55).fillCircle(1, 3, 19);
+    g.fillStyle(hover ? 0x5a1420 : 0x3d0d14, 1).fillCircle(0, 0, 19);
+    g.lineStyle(2, gold, hover ? 1 : 0.85).strokeCircle(0, 0, 19);
+    // speaker body + cone
+    g.fillStyle(gold, 1).fillRect(-10, -4, 5, 8);
+    g.fillTriangle(-6, -1, 2, -9, 2, 9).fillRect(-6, -4, 8, 8);
+    if (muted) {
+      g.lineStyle(2.5, COLORS.wineRed, 1).lineBetween(5, -5, 12, 5).lineBetween(12, -5, 5, 5);
+    } else {
+      g.lineStyle(2, gold, 1);
+      g.beginPath().arc(3, 0, 6, -0.9, 0.9).strokePath();
+      g.beginPath().arc(3, 0, 11, -0.9, 0.9).strokePath();
+    }
+  }
+
+  update() {
+    if (this.muteUi && this.muteUi.shown !== isMuted()) this.drawMute(); // M key toggles it too
   }
 
   updateWaveText() {
@@ -204,6 +249,7 @@ export class HUDScene extends Phaser.Scene {
       hit.on('pointerover', () => { c.hover = true; this.styleCard(c); });
       hit.on('pointerout', () => { c.hover = false; this.styleCard(c); });
       hit.on('pointerdown', () => {
+        play('click');
         this.closeUpgrade();
         this.emit('select-tower', type);
       });

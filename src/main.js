@@ -5,6 +5,7 @@ import { GameScene } from './scenes/GameScene.js';
 import { EndScene } from './scenes/EndScene.js';
 import { HUDScene } from './scenes/HUDScene.js';
 import { TastingScene } from './scenes/TastingScene.js';
+import { toggleMuted, isMuted } from './fx/sound.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -18,4 +19,10 @@ const game = new Phaser.Game({
   scene: [BootScene, TitleScene, GameScene, HUDScene, TastingScene, EndScene],
 });
 
-if (import.meta.env.DEV) window.__game = game;
+if (import.meta.env.DEV) Object.assign(window, { __game: game, __isMuted: isMuted });
+
+// M mutes everywhere (Title, Game, a paused Game under the Tasting, End).
+// One window listener: scene keyboards stop firing while their scene is paused.
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyM' && !e.repeat) toggleMuted();
+});
