@@ -4,6 +4,14 @@
 
 ## Where things stand
 
+- **UI polish (plan `docs/superpowers/plans/2026-11-25-ui-polish.md`, done ~15:16, all on `main`):**
+  - **Shipped:** button variants (`primary`/`secondary`/`danger` in `src/ui/kit.js`); Pause/Victory/Controls with burgundy titles and a button hierarchy; End screens with Back to title, "Grand Cru left", and a broken-bottle defeat art; Tasting bottles coloured by effect, plus balanced bubble wrapping; title copy and controls line; a path entrance arch with red glow and chevrons; cream outlines on flies, corkscrews, rats and cans; a boss health bar (top centre, red when furious); an upgrade panel that shows the next stats, with an × close and Repair/Sell variants; no "Wave cleared" banner under the Tasting; a first-build hint (pulsing cheapest card plus a hint until the first tower).
+  - **Calls I made:**
+    - B1's outline (`textures.js` only) went in before the Phase B gate, because the plan lists `textures.js` as Phase-A-safe.
+    - Skipped B1 step 2 (pest scale ×1.3/×1.15 in `Enemy.js`): the outline already makes pests readable, and the scale needs a perf bench and hit/HP-bar checks there was no time for.
+    - Title backdrop: no Grand Cru (it sat cut off at the zoomed right edge).
+    - "Grand Cru left" shows on wins only.
+  - **Screenshots:** `C:\Users\Thoma\AppData\Local\Temp\claude\4de48c7c32974dec\c51a1a84-c3e6-4296-b42e-dfac34e40e00\scratchpad\shots-after\`. `shots.cjs` now clicks Play at y 548.
 - **Difficulty ramp (plan `docs/superpowers/plans/2026-11-25-difficulty.md`, done ~15:10):**
   - Waves 1–5 unchanged. From wave 6 on (scripted and Endless), with `r = wave − 5`: HP ×(1 + 0.35r), counts ×(1 + 0.25r) capped at 30 per group, speed ×min(1 + 0.04r, 1.4). Tuning knobs: `RAMP` in `src/logic/waves.js`. Spawned extras (nests, split and summoned cans) get the wave's HP and speed.
   - Le Monstre Blanc: slam 40 damage (was 30), splits into 8 cans (was 6). Below 50% HP it turns **furious**: red tint, banner, shake, speed ×1.35, slam every 2.5 s. While alive it spits 2 cans behind it every 10 s (first after 5 s). Knobs: `enrage` and `summon` on `ENEMIES.monstre`.
