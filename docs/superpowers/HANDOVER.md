@@ -32,7 +32,17 @@
   - Sell: Sell button in the upgrade panel, 70% of Grapes invested × HP fraction (`sellValue`), two-step "Sure? +N". Thomas takes his recruits along; his card unlocks again.
   - Endless: after wave 7, "The cellar holds!" offers Keep pouring / Claim victory. `waveAt` scales wave 7's pests (+20% count, +15% HP per endless wave), Le Monstre Blanc every 3rd endless wave, a Tasting every 3rd. A loss in Endless ends on the victory screen with "Endless: held until wave N".
   - `npm test` passes 79/79.
-- **Next:** bug-bash and run the README demo script on the live site before 15:45.
+- **Projector polish (2026-11-25, ~14:00), plan `docs/superpowers/plans/2026-11-25-projector-polish.md`, Tasks 1–4 done, nothing cut, all on `main`:**
+  - Projector mode on `L` (`src/fx/projector.js`, remembered in localStorage `wcs.projector`): darkness 0.82 → 0.45, vignette 1 → 0.4, candle glow 0.35 → 0.4 (0.5 washed out clustered towers). Toast in the HUD. Works on every screen.
+  - Thomas stands out: 1.25× sprite (placement ghost too), a real text "THOMAS" banner above his HP bar (depth 2610, bobs), and a wider gold spotlight. The baked 6.5 px name is gone from his texture and card.
+  - HD rendering (`src/ui/hd.js`): the canvas is `HD` × 1280×720 and every scene camera zooms `HD` × around the same world. Generated textures are drawn 2× and mapped back to their logical size (WebGL only; tiled floor/path, parchment panel, vignette and light-soft stay 1×; the Canvas renderer gets 1× everywhere).
+  - **HD defaults to 1.5** (native 1920×1080), not 2: on the Intel UHD 630 here, wave 3 ran at 48–53 fps at 1×, 41–45 at 1.5×, 32–36 at 2×. Override per load with `?hd=1` (the old 1× look, the revert switch) or `?hd=2`. **Check the frame rate on the demo laptop; if it stutters, open the site with `?hd=1`.**
+  - Live-site check at 1920×1080 with projector mode on: README demo script ran start to End with no console errors.
+    - With only 4 towers and `D` before wave 7, the whole board died and Le Monstre Blanc reached the bottle (lives 20 → 6), so there was no boss split to see. On stage: repair every tower after `D` (or skip `D` before `7`) and spend the Grapes on upgrades first.
+    - "The cellar holds! Le Monstre Blanc is beaten" still shows when the boss reached the bottle instead of dying (wording, not a crash).
+  - Known minors: `L` while the Wine Tasting is open toasts at once but brightens the paused cellar only after the pick. The placement ghost can stay visible if a fast pointer move lands straight on a card (pre-existing).
+  - `npm test` passes 79/79.
+- **Next:** bug-bash before 15:45.
 
 ## The feedback (user's words)
 
