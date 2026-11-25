@@ -18,7 +18,8 @@
 ## Global Constraints
 
 - Git: commit and push straight to `main` after each task. No branches, no worktrees, no PRs. A push deploys to https://thomasokvs.github.io/WTD/ in 1–2 minutes.
-- Time-box: stop feature work by 15:15. The task order is the priority order. If time runs short, drop Task 3 (HD rendering) before anything else.
+- Time-box: stop feature work by **14:45** and have everything pushed, so the parallel feedback session can merge by 15:15. The task order is the priority order. If time runs short, drop Task 3 (HD rendering) before anything else.
+- Parallel session: `docs/superpowers/plans/2026-11-25-playtest-feedback-2.md` runs at the same time in a git worktree on branch `feedback-2`, and merges into `main` at the end (its Task 7). This session stays in the main folder on `main` and pushes after every task, as usual. Don't touch the `feedback-2` branch or its worktree. Don't run Task 4 (the live-site check) until the feedback branch is merged; tell the user when you're ready for it instead.
 - Phaser 4 APIs only: read the project skills in `.claude/skills/` (`cameras`, `game-setup-and-config`, `text-and-bitmaptext`, `filters-and-postfx`, `tweens`) instead of writing Phaser 3 APIs from memory.
 - Parody names only. Thomas is a generic sommelier, name only. Never reintroduce the Nexios sword, the victory bell or Pizza Hut.
 - `src/logic/` stays Phaser-free. `npm test` must pass after every task.
