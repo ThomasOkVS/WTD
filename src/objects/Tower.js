@@ -1,12 +1,13 @@
 import { BUILD_SPOTS } from '../config/map.js';
 import { pickTarget } from '../logic/combat.js';
 import { towerStats } from '../logic/towers.js';
+import { applyBuffs } from '../logic/buffs.js';
 import { Projectile } from './Projectile.js';
 
-// Placed tower (state object) -> merged stats + its build-spot position.
-export function towerInfo(placed) {
+// Placed tower (state object) -> merged stats (+ Wine Tasting buffs) + its build-spot position.
+export function towerInfo(placed, buffs = []) {
   const spot = BUILD_SPOTS.find((s) => s.id === placed.spotId);
-  return { ...towerStats(placed), x: spot.x, y: spot.y };
+  return { ...applyBuffs(towerStats(placed), buffs), x: spot.x, y: spot.y };
 }
 
 const PROJ = { cork: 'proj-cork', decanter: 'proj-wine', thomas: 'proj-cork' };
@@ -16,16 +17,40 @@ export class Tower {
   constructor(scene, placed) {
     this.scene = scene;
     this.placed = placed;
-    this.stats = towerInfo(placed);
+    this.stats = towerInfo(placed, scene.state.buffs);
     this.cooldown = 0;
+    // Thomas: first recruit comes quickly so the feature is visible early
+    this.recruitLeft = placed.type === 'thomas' ? Math.min(3000, this.stats.recruitCooldownMs) : 0;
     const { x, y } = this.stats;
     this.sprite = scene.add.image(x, y + 20, `tower-${placed.type}`).setOrigin(0.5, 0.85).setDepth(y + 20).setScale(0);
     scene.tweens.add({ targets: this.sprite, scale: 1, duration: 260, ease: 'Back.easeOut' });
   }
 
+  // Quiet stat recompute (after a Wine Tasting buff).
+  recompute() {
+    this.stats = towerInfo(this.placed, this.scene.state.buffs);
+  }
+
   refresh() {
-    this.stats = towerInfo(this.placed);
+    this.recompute();
     this.scene.tweens.add({ targets: this.sprite, scale: 1.2, duration: 120, yoyo: true, ease: 'Sine.easeOut' });
+  }
+
+  // Thomas Recruit: only ticks while a wave is running (Game decides).
+  tickRecruit(dtMs, enemies) {
+    if (this.placed.type !== 'thomas') return;
+    this.recruitLeft -= dtMs;
+    if (this.recruitLeft > 0) return;
+    const s = this.stats;
+    let best = null;
+    for (const e of enemies) {
+      if (!e.alive || e.recruited || e.type === 'monstre') continue;
+      if (Math.hypot(e.x - s.x, e.y - s.y) > s.range) continue;
+      if (!best || e.hp > best.hp) best = e;
+    }
+    if (!best) return; // stays charged until someone walks into range
+    this.recruitLeft = s.recruitCooldownMs;
+    this.scene.recruit(best, this);
   }
 
   update(dt, enemies, now) {
@@ -34,7 +59,7 @@ export class Tower {
     const s = this.stats;
     const target = pickTarget(s, enemies);
     if (!target) return;
-    this.cooldown = 1 / s.rate;
+    this.cooldown = 1 / (s.rate * (this.scene.powerUp?.fireRateMult() ?? 1));
     // squash only when idle: overlapping the pop-in/upgrade tween left it stretched
     if (!this.scene.tweens.isTweening(this.sprite)) {
       this.scene.tweens.add({ targets: this.sprite, scaleY: { from: 1, to: 0.92 }, duration: 60, yoyo: true });

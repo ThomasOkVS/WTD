@@ -1,12 +1,12 @@
 import { ENEMIES } from '../config/enemies.js';
 import { applyDamage } from '../logic/combat.js';
 
-const BAR_W = 28;
+const GOLD = 0xffd36b;
 
 // One walking enemy. Plain object (x, y, distance, hp, alive, armour) so the
 // Phaser-free combat rules (pickTarget/applyDamage) can use it directly.
 export class Enemy {
-  constructor(scene, type) {
+  constructor(scene, type, distance = 0) {
     const cfg = ENEMIES[type];
     this.scene = scene;
     this.type = type;
@@ -15,19 +15,33 @@ export class Enemy {
     this.armour = cfg.armour;
     this.reward = cfg.reward;
     this.leakCost = cfg.leakCost;
-    this.distance = 0;
+    this.distance = distance;
     this.alive = true;
+    this.recruited = false;
+    this.boss = type === 'monstre';
+    this.barW = this.boss ? 84 : 28;
     this.slowFactor = 1;
     this.slowUntil = 0;
 
-    const p = scene.path.positionAt(0);
+    const p = scene.path.positionAt(distance);
     this.x = p.x;
     this.y = p.y;
     this.sprite = scene.add.image(p.x, p.y, `enemy-${type}`).setRotation(p.angle).setAlpha(0);
-    this.bar = scene.add.graphics().setVisible(false);
+    this.bar = scene.add.graphics().setVisible(this.boss); // the boss shows its health from the start
     scene.tweens.add({ targets: this.sprite, alpha: 1, duration: 200 });
     // small dim halo so pests stay readable between the candle pools
-    this.light = scene.lighting?.addLight(p.x, p.y, 60, 0, { strength: 0.9, glow: false });
+    // (the boss gets a bigger one so the big moment reads in the dark)
+    this.light = scene.lighting?.addLight(p.x, p.y, this.boss ? 130 : 60, 0, { strength: 0.9, glow: false });
+  }
+
+  // Thomas Recruit: turns gold, walks back towards the entrance.
+  recruit() {
+    this.recruited = true;
+    this.slowFactor = 1;
+    this.sprite.setTint(GOLD);
+    if (this.light) this.scene.lighting.removeLight(this.light);
+    this.light = this.scene.lighting?.addLight(this.x, this.y, 70, GOLD, { strength: 1, glow: true });
+    this.scene.tweens.add({ targets: this.sprite, scale: 1.25, duration: 160, yoyo: true, ease: 'Sine.easeOut' });
   }
 
   slow(amount, ms, now) {
@@ -37,16 +51,18 @@ export class Enemy {
 
   update(dt, now) {
     if (this.slowFactor < 1 && now >= this.slowUntil) this.slowFactor = 1;
-    this.distance += this.speed * this.slowFactor * dt;
+    const dir = this.recruited ? -1 : 1;
+    this.distance += dir * this.speed * this.slowFactor * dt;
     const p = this.scene.path.positionAt(this.distance);
     this.x = p.x;
     this.y = p.y;
-    this.sprite.setPosition(p.x, p.y).setRotation(p.angle).setDepth(p.y);
+    this.sprite.setPosition(p.x, p.y).setRotation(this.recruited ? p.angle + Math.PI : p.angle).setDepth(p.y);
     if (this.light) {
       this.light.x = p.x;
       this.light.y = p.y;
     }
-    if (this.slowFactor < 1) this.sprite.setTint(0xc9a0ff);
+    if (this.recruited) this.sprite.setTint(GOLD);
+    else if (this.slowFactor < 1) this.sprite.setTint(0xc9a0ff);
     else this.sprite.clearTint();
     if (this.bar.visible) this.drawBar();
   }
@@ -65,9 +81,12 @@ export class Enemy {
   drawBar() {
     const top = this.y - this.sprite.height / 2 - 8;
     const f = Math.max(0, this.hp / this.maxHp);
+    const w = this.barW, h = this.boss ? 6 : 3;
     this.bar.clear().setDepth(this.y + 0.5);
-    this.bar.fillStyle(0x120a0d, 0.85).fillRect(this.x - BAR_W / 2 - 1, top - 1, BAR_W + 2, 5);
-    this.bar.fillStyle(f > 0.5 ? 0x8fd16a : f > 0.25 ? 0xffb35c : 0xd01a3a, 1).fillRect(this.x - BAR_W / 2, top, BAR_W * f, 3);
+    this.bar.fillStyle(0x120a0d, 0.85).fillRect(this.x - w / 2 - 1, top - 1, w + 2, h + 2);
+    const color = this.recruited ? GOLD : f > 0.5 ? 0x8fd16a : f > 0.25 ? 0xffb35c : 0xd01a3a;
+    this.bar.fillStyle(color, 1).fillRect(this.x - w / 2, top, w * f, h);
+    if (this.boss) this.bar.lineStyle(1, 0xe8c07a, 0.8).strokeRect(this.x - w / 2 - 1, top - 1, w + 2, h + 2);
   }
 
   // Remove with a short shrink/fade (killed) or immediately.

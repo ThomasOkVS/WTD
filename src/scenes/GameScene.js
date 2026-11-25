@@ -9,19 +9,26 @@ import { buildSchedule, createWaveRunner, waveBonus } from '../logic/waves.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
 import { drawCellar } from '../fx/cellar.js';
+import { ENEMIES } from '../config/enemies.js';
+import { createPowerUp } from '../logic/buffs.js';
+import { play } from '../fx/sound.js';
+
+const POWER = { durationMs: 10000, cooldownMs: 45000 };
 
 // Every custom event on this.events (documentation). scene.events survives
 // restarts, so each scene removes ONLY its own handlers on shutdown
 // (off(name, fn, ctx)); never off(name) here, it would wipe the HUD's too.
 // Game -> HUD: grapes-changed, lives-changed, wave-started, wave-cleared,
 //   tower-placed, placement-refused, enemy-killed, tower-selected,
-//   tower-clicked, tower-upgraded, upgrade-refused, power-changed, game-over
-// HUD -> Game: start-wave, select-tower, upgrade-tower, activate-power (Task 9)
+//   tower-clicked, tower-upgraded, upgrade-refused, power-changed, game-over,
+//   boss-spawned, buff-added (wine)
+// HUD -> Game: start-wave, select-tower, upgrade-tower, activate-power
+// Tasting -> Game: tasting-picked (wine)
 export const GAME_EVENTS = [
   'grapes-changed', 'lives-changed', 'wave-started', 'wave-cleared', 'tower-placed',
   'placement-refused', 'enemy-killed', 'start-wave', 'select-tower', 'upgrade-tower',
   'tower-selected', 'tower-clicked', 'tower-upgraded', 'upgrade-refused',
-  'activate-power', 'power-changed', 'game-over',
+  'activate-power', 'power-changed', 'game-over', 'boss-spawned', 'buff-added', 'tasting-picked',
 ];
 
 export class GameScene extends Phaser.Scene {
@@ -42,14 +49,26 @@ export class GameScene extends Phaser.Scene {
     this.clock = 0; // ms of unpaused scene time
     this.ending = false;
     this.kills = 0;
+    this.recruits = [];
+    this.tastingOpen = false;
+    this.powerUp = createPowerUp(POWER); // starts charged: demo it right away
+    this.powerEmitAt = 0;
+    this.heartbeatIn = 0;
+    this.sparkIn = 0;
+    this.shakeIn = 0;
+    this.wasActive = false;
 
     this.lighting = drawCellar(this);
     this.createSpots();
+    this.createPowerFx();
 
     this.events.on('start-wave', this.startWave, this);
     this.events.on('select-tower', this.selectTower, this);
     this.events.on('upgrade-tower', this.upgrade, this);
+    this.events.on('activate-power', this.activatePower, this);
+    this.events.on('tasting-picked', this.onTastingPicked, this);
     this.input.keyboard.on('keydown-ESC', this.onEsc, this);
+    if (import.meta.env.DEV) this.input.keyboard.on('keydown-B', this.devBoss, this);
     this.events.once('shutdown', this.cleanup, this);
 
     // HUD runs in parallel and talks to Game only through this.events.
@@ -141,7 +160,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   startWave() {
-    if (this.runner || this.ending || this.state.wave >= WAVES.length) return;
+    if (this.runner || this.ending || this.tastingOpen || this.state.wave >= WAVES.length) return;
     this.waveIndex = this.state.wave;
     this.state.wave += 1;
     this.runner = createWaveRunner(buildSchedule(WAVES[this.waveIndex]));
@@ -149,14 +168,158 @@ export class GameScene extends Phaser.Scene {
   }
 
   damageEnemy(enemy, damage) {
-    if (!enemy.alive) return;
+    if (!enemy.alive || enemy.recruited) return;
     if (!enemy.hit(damage)) return;
     this.removeEnemy(enemy, true);
     this.kills += 1;
-    earn(this.state, enemy.reward);
-    this.floatText(enemy.x, enemy.y - 16, `+${enemy.reward}`);
+    const reward = Math.round(enemy.reward * this.rewardMult());
+    earn(this.state, reward);
+    this.floatText(enemy.x, enemy.y - 16, `+${reward}`);
     this.events.emit('grapes-changed', this.state.grapes);
     this.events.emit('enemy-killed', enemy);
+    if (ENEMIES[enemy.type].splitInto) this.splitBoss(enemy);
+  }
+
+  rewardMult() {
+    return this.state.buffs.reduce((m, b) => (b.stat === 'reward' ? m * b.mult : m), 1);
+  }
+
+  spawnEnemy(type, distance = 0) {
+    const e = new Enemy(this, type, distance);
+    this.enemies.push(e);
+    if (e.boss) this.events.emit('boss-spawned', type);
+    return e;
+  }
+
+  // ---------- Le Monstre Blanc ----------
+  // Cans are pushed synchronously so the last wave can't clear on the boss kill.
+  splitBoss(boss) {
+    const { type, count } = ENEMIES[boss.type].splitInto;
+    for (let i = 0; i < count; i++) {
+      const off = count > 1 ? -20 + (40 * i) / (count - 1) : 0;
+      const can = this.spawnEnemy(type, Math.max(0, boss.distance + off));
+      can.update(0, this.clock); // place it now, not at the entrance
+      this.tweens.killTweensOf(can.sprite);
+      can.sprite.setAlpha(1).setScale(0.2);
+      this.tweens.add({ targets: can.sprite, scale: 1, duration: 260, delay: i * 30, ease: 'Back.easeOut' });
+    }
+    this.cameras.main.shake(450, 0.012);
+    this.cameras.main.flash(180, 233, 220, 192);
+    play('shatter');
+    this.sparks.explode(28, boss.x, boss.y);
+    this.floatText(boss.x, boss.y - 44, 'Le Monstre Blanc splits!', '#e9dcc0');
+  }
+
+  devBoss() {
+    if (this.ending || this.tastingOpen) return;
+    this.spawnEnemy('monstre');
+  }
+
+  // ---------- Thomas Recruit ----------
+  recruit(enemy, tower) {
+    const i = this.enemies.indexOf(enemy);
+    if (i < 0) return;
+    this.enemies.splice(i, 1); // towers ignore it, it can't leak
+    enemy.recruit();
+    this.recruits.push(enemy);
+    const g = this.add.graphics().setDepth(2560);
+    g.lineStyle(3, 0xffd36b, 0.9).lineBetween(tower.stats.x, tower.stats.y - 20, enemy.x, enemy.y);
+    this.tweens.add({ targets: g, alpha: 0, duration: 450, onComplete: () => g.destroy() });
+    this.floatText(enemy.x, enemy.y - 22, 'Recruited!', '#ffd36b');
+  }
+
+  updateRecruits(dt) {
+    for (const r of [...this.recruits]) {
+      r.update(dt, this.clock);
+      const foe = this.enemies.find((e) => e.alive && Math.hypot(e.x - r.x, e.y - r.y) <= 20);
+      if (foe) {
+        this.damageEnemy(foe, r.hp);
+        this.dismissRecruit(r);
+      } else if (r.distance <= 0) {
+        this.dismissRecruit(r);
+      }
+    }
+  }
+
+  dismissRecruit(r) {
+    this.sparks.explode(10, r.x, r.y);
+    r.destroy(true);
+    const i = this.recruits.indexOf(r);
+    if (i >= 0) this.recruits.splice(i, 1);
+  }
+
+  // ---------- Wine Tasting ----------
+  onTastingPicked(wine) {
+    this.state.buffs.push(wine.effect);
+    for (const t of this.towers) t.recompute();
+    this.tastingOpen = false;
+    this.events.emit('buff-added', wine);
+  }
+
+  // ---------- Taureau Rouge Grand Cru ----------
+  createPowerFx() {
+    // police-light wash: red from the left, blue from the right, alternating;
+    // above the darkness, below the vignette
+    this.powerRed = this.add.image(120, 360, 'light-soft').setDisplaySize(1700, 1500).setTint(0xd01a3a)
+      .setDepth(2650).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    this.powerBlue = this.add.image(1160, 360, 'light-soft').setDisplaySize(1700, 1500).setTint(0x2a5cff)
+      .setDepth(2650).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    this.sparks = this.add.particles(0, 0, 'spark', {
+      emitting: false,
+      lifespan: 520,
+      speed: { min: 60, max: 180 },
+      scale: { start: 0.9, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint: [0xff3a4a, 0x5a8aff, 0xffd36b],
+      blendMode: 'ADD',
+    }).setDepth(2660);
+  }
+
+  activatePower() {
+    if (this.ending || this.tastingOpen) return;
+    if (!this.powerUp.activate()) {
+      play('nope');
+      return;
+    }
+    play('power');
+    play('heartbeat');
+    this.heartbeatIn = 800;
+    this.sparkIn = 0;
+    this.cameras.main.flash(160, 208, 26, 58);
+    this.tweens.killTweensOf([this.powerRed, this.powerBlue]);
+    this.tweens.add({ targets: this.powerRed, alpha: { from: 0.55, to: 0.05 }, duration: 400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: this.powerBlue, alpha: { from: 0.05, to: 0.55 }, duration: 400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.emitPower();
+  }
+
+  updatePower(dtMs) {
+    const p = this.powerUp;
+    p.tick(dtMs, { paused: false });
+    if (p.active) {
+      this.heartbeatIn -= dtMs;
+      if (this.heartbeatIn <= 0) {
+        this.heartbeatIn += 800;
+        play('heartbeat');
+      }
+      this.sparkIn -= dtMs;
+      if (this.sparkIn <= 0) {
+        this.sparkIn = 260;
+        for (const t of this.towers) this.sparks.explode(3, t.stats.x, t.stats.y - 24);
+      }
+    } else if (this.wasActive) {
+      this.tweens.killTweensOf([this.powerRed, this.powerBlue]);
+      this.tweens.add({ targets: [this.powerRed, this.powerBlue], alpha: 0, duration: 300 });
+    }
+    this.wasActive = p.active;
+    this.powerEmitAt -= dtMs;
+    if (this.powerEmitAt <= 0) this.emitPower();
+  }
+
+  emitPower() {
+    this.powerEmitAt = 100; // ~10 Hz
+    const p = this.powerUp;
+    const fraction = p.ready ? 1 : p.active ? p.activeLeft / POWER.durationMs : 1 - p.cooldownLeft / POWER.cooldownMs;
+    this.events.emit('power-changed', { ready: p.ready, active: p.active, fraction });
   }
 
   removeEnemy(enemy, animated) {
@@ -165,9 +328,9 @@ export class GameScene extends Phaser.Scene {
     if (i >= 0) this.enemies.splice(i, 1);
   }
 
-  floatText(x, y, msg) {
+  floatText(x, y, msg, color = '#e8c07a') {
     const t = this.add
-      .text(x, y, msg, { fontFamily: 'Cinzel, serif', fontStyle: '700', fontSize: '16px', color: '#e8c07a', stroke: '#120a0d', strokeThickness: 3 })
+      .text(x, y, msg, { fontFamily: 'Cinzel, serif', fontStyle: '700', fontSize: '16px', color, stroke: '#120a0d', strokeThickness: 3 })
       .setOrigin(0.5)
       .setDepth(3000);
     this.tweens.add({ targets: t, y: y - 28, alpha: 0, duration: 700, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
@@ -178,7 +341,8 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(delta, 100) / 1000; // clamp so a tab switch doesn't teleport enemies
     this.clock += dt * 1000;
 
-    if (this.runner) for (const type of this.runner.tick(dt * 1000)) this.enemies.push(new Enemy(this, type));
+    if (this.runner) for (const type of this.runner.tick(dt * 1000)) this.spawnEnemy(type);
+    this.updatePower(dt * 1000);
 
     for (const e of [...this.enemies]) {
       e.update(dt, this.clock);
@@ -190,7 +354,20 @@ export class GameScene extends Phaser.Scene {
       if (this.state.status === 'lost') return this.endGame('lost');
     }
 
-    for (const t of this.towers) t.update(dt, this.enemies, this.clock);
+    this.updateRecruits(dt);
+    // Le Monstre Blanc's footsteps rattle the cellar
+    if (this.enemies.some((e) => e.boss)) {
+      this.shakeIn -= dt * 1000;
+      if (this.shakeIn <= 0) {
+        this.shakeIn = 600;
+        this.cameras.main.shake(120, 0.002);
+      }
+    }
+
+    for (const t of this.towers) {
+      if (this.runner) t.tickRecruit(dt * 1000, this.enemies);
+      t.update(dt, this.enemies, this.clock);
+    }
     for (const p of this.projectiles) p.update(dt);
     this.projectiles = this.projectiles.filter((p) => !p.done);
 
@@ -199,10 +376,16 @@ export class GameScene extends Phaser.Scene {
       this.runner = null;
       earn(this.state, waveBonus(i));
       this.events.emit('grapes-changed', this.state.grapes);
+      for (const r of [...this.recruits]) this.dismissRecruit(r);
       this.events.emit('wave-cleared', i);
       if (i === WAVES.length - 1) {
         this.state.status = 'won';
         this.endGame('won');
+      } else {
+        // Thomas's Annual Wine Tasting: modal, Game paused until a wine is picked
+        this.tastingOpen = true;
+        this.scene.launch('Tasting');
+        this.scene.pause();
       }
     }
   }
@@ -220,8 +403,14 @@ export class GameScene extends Phaser.Scene {
     this.events.off('start-wave', this.startWave, this);
     this.events.off('select-tower', this.selectTower, this);
     this.events.off('upgrade-tower', this.upgrade, this);
+    this.events.off('activate-power', this.activatePower, this);
+    this.events.off('tasting-picked', this.onTastingPicked, this);
     this.input.keyboard.off('keydown-ESC', this.onEsc, this);
+    this.input.keyboard.off('keydown-B', this.devBoss, this);
     this.scene.stop('HUD');
+    this.scene.stop('Tasting');
+    for (const r of this.recruits) r.destroy();
+    this.recruits = [];
     for (const e of this.enemies) e.destroy();
     for (const p of this.projectiles) p.destroy();
     for (const t of this.towers) t.destroy();

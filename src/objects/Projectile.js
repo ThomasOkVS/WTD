@@ -15,7 +15,7 @@ export class Projectile {
   }
 
   update(dt) {
-    if (this.target.alive) {
+    if (this.target.alive && !this.target.recruited) {
       this.tx = this.target.x;
       this.ty = this.target.y;
     }
@@ -40,7 +40,7 @@ export class Projectile {
       }
       const ring = scene.add.circle(this.tx, this.ty, this.splash, 0x8a1c2b, 0.35).setDepth(1999).setScale(0.3);
       scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 260, onComplete: () => ring.destroy() });
-    } else if (this.target.alive) {
+    } else if (this.target.alive && !this.target.recruited) {
       scene.damageEnemy(this.target, this.damage);
     }
     this.sprite.destroy();

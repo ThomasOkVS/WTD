@@ -4,6 +4,7 @@ import { WAVES } from '../config/waves.js';
 import { BUILD_SPOTS } from '../config/map.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
+import { describeEffect } from './TastingScene.js';
 
 const CARD_W = 168, CARD_H = 92, CARD_Y = 664;
 const TOAST = {
@@ -53,6 +54,8 @@ export class HUDScene extends Phaser.Scene {
     this.listen('tower-upgraded', this.onUpgraded);
     this.listen('upgrade-refused', this.onUpgradeRefused);
     this.listen('power-changed', this.setPower);
+    this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
+    this.listen('buff-added', (wine) => this.banner(`Buff: ${wine.name}`, describeEffect(wine.effect).replace('\n', ', ')));
     this.listen('game-over', () => {
       this.input.enabled = false; // nothing clickable during the fade-out
       this.cameras.main.fadeOut(400, 18, 10, 13);
@@ -268,9 +271,9 @@ export class HUDScene extends Phaser.Scene {
     this.bannerChain?.stop();
     if (this.bannerBox) this.bannerBox.destroy();
     const b = this.add.container(640, 236);
-    const p = panel(this, 0, 0, 340, 92);
     const t = this.add.text(0, -12, title, serif(30)).setOrigin(0.5);
     const s = this.add.text(0, 22, sub, body(18, PALETTE.burgundy)).setOrigin(0.5);
+    const p = panel(this, 0, 0, Math.max(340, t.width + 70, s.width + 70), 92); // long titles (boss, buffs) widen it
     b.add([p, t, s]);
     this.bannerBox = b;
     b.setAlpha(0).setScale(0.92);

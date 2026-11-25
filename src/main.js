@@ -4,6 +4,7 @@ import { TitleScene } from './scenes/TitleScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { EndScene } from './scenes/EndScene.js';
 import { HUDScene } from './scenes/HUDScene.js';
+import { TastingScene } from './scenes/TastingScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -13,7 +14,8 @@ const game = new Phaser.Game({
   backgroundColor: '#120a0d',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   // HUD after Game: array order is render order, so the HUD draws on top.
-  scene: [BootScene, TitleScene, GameScene, HUDScene, EndScene],
+  // Tasting after HUD: the modal draws (and takes input) above both.
+  scene: [BootScene, TitleScene, GameScene, HUDScene, TastingScene, EndScene],
 });
 
 if (import.meta.env.DEV) window.__game = game;
