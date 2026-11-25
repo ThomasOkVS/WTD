@@ -1,4 +1,3 @@
-import { BUILD_SPOTS } from '../config/map.js';
 import { pickTarget } from '../logic/combat.js';
 import { towerStats, auraMult } from '../logic/towers.js';
 import { applyBuffs } from '../logic/buffs.js';
@@ -6,10 +5,9 @@ import { Projectile } from './Projectile.js';
 import { play } from '../fx/sound.js';
 import { corkPop, wineRing } from '../fx/particles.js';
 
-// Placed tower (state object) -> merged stats (+ Wine Tasting buffs) + its build-spot position.
+// Placed tower (state object) -> merged stats (+ Wine Tasting buffs) + its position.
 export function towerInfo(placed, buffs = []) {
-  const spot = BUILD_SPOTS.find((s) => s.id === placed.spotId);
-  return { ...applyBuffs(towerStats(placed), buffs), x: spot.x, y: spot.y };
+  return { ...applyBuffs(towerStats(placed), buffs), x: placed.x, y: placed.y };
 }
 
 const PROJ = { cork: 'proj-cork', decanter: 'proj-wine', thomas: 'proj-cork' };

@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
-import { PATH, BUILD_SPOTS } from '../config/map.js';
+import { PATH } from '../config/map.js';
 import { TOWERS } from '../config/towers.js';
 import { WAVES } from '../config/waves.js';
 import { createPath } from '../logic/path.js';
 import { createGameState, earn, loseLives } from '../logic/state.js';
-import { canPlace, placeTower, upgradeTower } from '../logic/towers.js';
+import { canPlace, placeTower, upgradeTower, snap } from '../logic/towers.js';
 import { buildSchedule, createWaveRunner, waveBonus } from '../logic/waves.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
@@ -53,7 +53,7 @@ export class GameScene extends Phaser.Scene {
     this.wasActive = false;
 
     this.lighting = drawCellar(this);
-    this.createSpots();
+    this.createPlacement();
     this.createPowerFx();
     startDust(this);
 
@@ -73,61 +73,98 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.fadeIn(250, 18, 10, 13);
   }
 
-  createSpots() {
-    this.spots = {};
+  // ---------- free placement ----------
+  // With a card selected a ghost of the tower (plus its range) follows the
+  // pointer, snapped to the grid, and shows whether it may stand there.
+  createPlacement() {
     this.rangeRing = this.add.graphics().setDepth(2550); // placement aid: above the darkness
-    for (const spot of BUILD_SPOTS) {
-      const ring = this.add.graphics().setDepth(2540).setAlpha(0); // free-spot ring above the darkness so it reads in the dark bands
-      this.drawSpotRing(ring, spot, false);
-      this.tweens.add({ targets: ring, alpha: 1, duration: 300 });
-      const zone = this.add.zone(spot.x, spot.y, 72, 72).setInteractive({ useHandCursor: true });
-      zone.on('pointerover', () => this.hoverSpot(spot, true));
-      zone.on('pointerout', () => this.hoverSpot(spot, false));
-      zone.on('pointerdown', () => this.clickSpot(spot));
-      this.spots[spot.id] = { spot, ring, zone };
+    this.ghost = this.add.image(0, 0, 'tower-cork').setOrigin(0.5, 0.85).setDepth(2551).setAlpha(0.75).setVisible(false);
+    this.hoverTower = null;
+    this.input.mouse?.disableContextMenu(); // right-click cancels instead
+    this.input.on('pointermove', this.onPointerMove, this);
+    this.input.on('pointerdown', this.onPointerDown, this);
+  }
+
+  // Pointer over a HUD element (cards, buttons, an open upgrade panel)?
+  // HUD runs above Game, so those clicks are the HUD's, never a placement.
+  overHud(pointer) {
+    if (pointer.y > 598) return true;
+    const hud = this.scene.get('HUD');
+    return !!(hud?.sys.isActive() && hud.input.hitTestPointer(pointer).length);
+  }
+
+  towerNear(x, y) {
+    let best = null, bestD = 34;
+    for (const t of this.towers) {
+      const d = Math.hypot(t.stats.x - x, t.stats.y - 8 - y); // the sprite's visual centre sits a bit above its foot
+      if (d < bestD) { best = t; bestD = d; }
     }
+    return best;
   }
 
-  drawSpotRing(g, spot, hover) {
-    g.clear();
-    g.fillStyle(0x120a0d, hover ? 0.45 : 0.3).fillCircle(spot.x, spot.y, 26);
-    g.lineStyle(2, 0xe8c07a, hover ? 0.9 : 0.35).strokeCircle(spot.x, spot.y, 26);
+  drawRange(x, y, range, ok = true) {
+    const c = ok ? 0xe8c07a : 0xd01a3a;
+    this.rangeRing.clear().lineStyle(2, c, ok ? 0.55 : 0.7).fillStyle(c, ok ? 0.08 : 0.1).fillCircle(x, y, range).strokeCircle(x, y, range);
   }
 
-  towerAt(spotId) {
-    return this.towers.find((t) => t.placed.spotId === spotId);
-  }
-
-  hoverSpot(spot, over) {
-    const { ring } = this.spots[spot.id];
-    const tower = this.towerAt(spot.id);
+  hideGhost() {
+    this.ghost.setVisible(false);
     this.rangeRing.clear();
-    if (!tower) this.drawSpotRing(ring, spot, over);
-    if (!over) return;
-    const range = tower ? tower.stats.range : this.selectedType && TOWERS[this.selectedType].range;
-    if (range) this.rangeRing.lineStyle(2, 0xe8c07a, 0.5).fillStyle(0xe8c07a, 0.08).fillCircle(spot.x, spot.y, range).strokeCircle(spot.x, spot.y, range);
   }
 
-  clickSpot(spot) {
+  onPointerMove(pointer) {
     if (this.ending) return;
-    const tower = this.towerAt(spot.id);
-    if (tower && !this.selectedType) {
-      this.events.emit('tower-clicked', tower.placed); // HUD opens the upgrade panel
+    const hud = this.overHud(pointer);
+    if (this.selectedType) {
+      if (hud) return this.hideGhost();
+      const pos = snap(pointer);
+      const check = canPlace(this.state, this.selectedType, pos);
+      // grapes/unique don't depend on where you point: the ghost judges the spot only
+      const spotOk = check.ok || check.reason === 'grapes' || check.reason === 'unique';
+      this.ghost.setTexture(`tower-${this.selectedType}`).setPosition(pos.x, pos.y + 20).setVisible(true)
+        .setTint(spotOk ? 0xffffff : 0xff6060);
+      this.drawRange(pos.x, pos.y, TOWERS[this.selectedType].range, spotOk);
       return;
     }
-    if (!this.selectedType) return;
-    const check = canPlace(this.state, this.selectedType, spot.id);
+    const t = hud ? null : this.towerNear(pointer.x, pointer.y);
+    if (t === this.hoverTower) return;
+    this.hoverTower = t;
+    this.rangeRing.clear();
+    this.input.setDefaultCursor(t ? 'pointer' : 'default');
+    if (t) this.drawRange(t.stats.x, t.stats.y, t.stats.range);
+  }
+
+  onPointerDown(pointer) {
+    if (this.ending || this.tastingOpen) return;
+    if (pointer.rightButtonDown()) {
+      if (this.selectedType) this.selectTower(this.selectedType);
+      return;
+    }
+    if (this.overHud(pointer)) return;
+    if (!this.selectedType) {
+      const tower = this.towerNear(pointer.x, pointer.y);
+      if (tower) this.events.emit('tower-clicked', tower.placed); // HUD opens the upgrade panel
+      return;
+    }
+    this.tryPlace(snap(pointer));
+  }
+
+  tryPlace(pos) {
+    const check = canPlace(this.state, this.selectedType, pos);
     if (!check.ok) {
       play('nope');
       this.events.emit('placement-refused', check.reason);
+      if (this.ghost.visible) {
+        this.tweens.killTweensOf(this.ghost);
+        this.ghost.x = pos.x;
+        this.tweens.add({ targets: this.ghost, x: pos.x + 6, duration: 45, yoyo: true, repeat: 3, onComplete: () => this.ghost.setX(pos.x) });
+      }
       return;
     }
-    const placed = placeTower(this.state, this.selectedType, spot.id);
+    const placed = placeTower(this.state, this.selectedType, pos);
     const built = new Tower(this, placed);
-    built.light = this.lighting.addLight(spot.x, spot.y, 90);
+    built.light = this.lighting.addLight(pos.x, pos.y, 90);
     this.towers.push(built);
-    this.spots[spot.id].ring.setVisible(false);
-    this.rangeRing.clear();
     this.events.emit('grapes-changed', this.state.grapes);
     play('place');
     this.events.emit('tower-placed', placed);
@@ -141,6 +178,14 @@ export class GameScene extends Phaser.Scene {
   // Same type again (or ESC) toggles the selection off.
   selectTower(type) {
     this.selectedType = !type || type === this.selectedType ? null : type;
+    if (!this.selectedType) {
+      this.hideGhost();
+    } else {
+      this.hoverTower = null;
+      this.input.setDefaultCursor('default');
+      const p = this.input.activePointer; // show the ghost right away if the pointer is on the field
+      if (p && !this.overHud(p)) this.onPointerMove(p);
+    }
     this.events.emit('tower-selected', this.selectedType);
   }
 
@@ -458,6 +503,9 @@ export class GameScene extends Phaser.Scene {
     this.events.off('tasting-picked', this.onTastingPicked, this);
     this.input.keyboard.off('keydown-ESC', this.onEsc, this);
     this.input.keyboard.off('keydown', this.onDemoKey, this);
+    this.input.off('pointermove', this.onPointerMove, this);
+    this.input.off('pointerdown', this.onPointerDown, this);
+    this.input.setDefaultCursor('default');
     this.scene.stop('HUD');
     this.scene.stop('Tasting');
     for (const r of this.recruits) r.destroy();

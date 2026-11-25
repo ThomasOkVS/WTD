@@ -1,4 +1,4 @@
-import { PATH, CANDLES, GRAND_CRU } from '../config/map.js';
+import { PATH, CANDLES, BARRELS, GRAND_CRU } from '../config/map.js';
 import { createLighting } from './lighting.js';
 
 export const PATH_W = 56;
@@ -6,19 +6,6 @@ const EDGE = 0x1f140f;
 const AMBIENT_STEP = 170;
 const DECOR_DEPTH = -85; // floor -100 < path -90 < decor < build-spot rings -80
 
-// Barrels dotted around the edges, clear of the path and the build spots.
-const BARRELS = [
-  { x: 46, y: 52, s: 0.9, r: 0.3 },
-  { x: 102, y: 70, s: 0.7, r: 1.2 },
-  { x: 380, y: 62, s: 0.8, r: 2.1 },
-  { x: 830, y: 58, s: 0.85, r: 0.8 },
-  { x: 1222, y: 60, s: 0.95, r: 2.6 },
-  { x: 1230, y: 340, s: 0.85, r: 1.7 },
-  { x: 40, y: 330, s: 0.85, r: 0.5 },
-  { x: 460, y: 585, s: 0.8, r: 2.9 },
-  { x: 1230, y: 585, s: 0.9, r: 1.1 },
-  { x: 790, y: 590, s: 0.75, r: 0.2 },
-];
 
 // Floor, worn path with a dark soft edge, barrels, candles, the Grand Cru and
 // the candle lighting. Shared by the title (backdrop) and the game.

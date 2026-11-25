@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createPath } from '../../src/logic/path.js';
-import { PATH, BUILD_SPOTS, CANDLES, GRAND_CRU } from '../../src/config/map.js';
+import { createPath, distanceToPath } from '../../src/logic/path.js';
+import { PATH, CANDLES, BARRELS, GRAND_CRU } from '../../src/config/map.js';
 
 function distToSegment(p, a, b) {
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -27,32 +27,33 @@ describe('createPath', () => {
   });
 });
 
+describe('distanceToPath', () => {
+  const pts = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 50 }];
+  it('measures to the nearest segment', () => {
+    expect(distanceToPath(pts, { x: 50, y: 30 })).toBe(30);
+    expect(distanceToPath(pts, { x: 130, y: 25 })).toBe(30);
+    expect(distanceToPath(pts, { x: -40, y: 0 })).toBe(40); // past the first point
+  });
+  it('matches the reference point-segment math on the real map', () => {
+    const p = { x: 450, y: 385 };
+    let best = Infinity;
+    for (let i = 0; i < PATH.length - 1; i++) best = Math.min(best, distToSegment(p, PATH[i], PATH[i + 1]));
+    expect(distanceToPath(PATH, p)).toBeCloseTo(best);
+  });
+});
+
 describe('map', () => {
   it('path enters off-screen left and ends at the Grand Cru near the right edge', () => {
     expect(PATH[0].x).toBeLessThan(0);
     expect(PATH.at(-1)).toEqual(GRAND_CRU);
     expect(GRAND_CRU.x).toBeGreaterThan(1100);
   });
-  it('keeps the HUD bands free of path and spots', () => {
+  it('keeps the bottom HUD band free of the path', () => {
     for (const q of PATH) expect(q.y).toBeLessThanOrEqual(610);
-    for (const s of BUILD_SPOTS) {
-      expect(s.y).toBeLessThanOrEqual(610);
-      expect(s.y).toBeGreaterThanOrEqual(60);
-    }
   });
-  it('has about 12 spots and 6 candles', () => {
-    expect(BUILD_SPOTS.length).toBe(12);
+  it('has 6 candles and some barrels, none of them on the path', () => {
     expect(CANDLES.length).toBe(6);
-    expect(new Set(BUILD_SPOTS.map((s) => s.id)).size).toBe(12);
-  });
-  it('every build spot is >= 50px from every path segment', () => {
-    for (const s of BUILD_SPOTS)
-      for (let i = 0; i < PATH.length - 1; i++)
-        expect(distToSegment(s, PATH[i], PATH[i + 1])).toBeGreaterThanOrEqual(50);
-  });
-  it('spots do not overlap (>= 60px apart)', () => {
-    for (let i = 0; i < BUILD_SPOTS.length; i++)
-      for (let j = i + 1; j < BUILD_SPOTS.length; j++)
-        expect(Math.hypot(BUILD_SPOTS[i].x - BUILD_SPOTS[j].x, BUILD_SPOTS[i].y - BUILD_SPOTS[j].y)).toBeGreaterThanOrEqual(60);
+    expect(BARRELS.length).toBeGreaterThan(0);
+    for (const d of [...CANDLES, ...BARRELS]) expect(distanceToPath(PATH, d)).toBeGreaterThanOrEqual(50);
   });
 });

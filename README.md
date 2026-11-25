@@ -16,7 +16,7 @@ npm run preview   # serve the build: http://localhost:4173/WTD/
 
 ## Controls
 
-- Click a tower card, then a free build spot. Click a placed tower to upgrade it.
+- Click a tower card, then click anywhere beside the path to build (the ghost turns red where it can't go). Right-click or `Esc` cancels. Click a placed tower to upgrade it.
 - **Next wave** starts the next wave. **Taureau Rouge** (bottom right) doubles fire rate for 10 s.
 - `Esc` deselects / closes the upgrade panel. `M` (or the speaker icon) mutes.
 

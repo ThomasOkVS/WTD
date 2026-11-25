@@ -11,7 +11,13 @@
   - Music, the heartbeat, power, win and Sommelier "pour" sounds are synthesised in `src/fx/sound.js`.
   - Title music starts on the first click or key press (browser autoplay rule).
 - **Tests:** `npm test` passes 37/37. `REGRET.md` has 5 entries.
-- **Next:** the user played the game and wrote the feedback below. Process it in this session.
+- **Feedback processed (2026-11-25, ~12:15), all six items pushed to `main`:**
+  - Cards sorted by price; hover tooltips on every card (role + live stats) and on Taureau Rouge (effect + ready/active/recharging state); one-time toast on the first wave of a run.
+  - Decanter bursts wine around itself: every pest within 85/95/105 px takes 35/50/70. Grand Decant buffs its range.
+  - Thomas (option a): Recruit every 6/4.5/3 s, the recruit smashes every pest it walks through (once each), morale aura +15%/+25% fire rate within 120 px (gold ring).
+  - Free placement: ghost + range ring follows the pointer on an 8 px grid; refused on the path, under the HUD, too close to a tower, or on candles/barrels. Right-click or Esc cancels. `BUILD_SPOTS` is gone.
+  - `npm test` passes 43/43.
+- **Next:** bug-bash and run the README demo script on the live site before 15:45.
 
 ## The feedback (user's words)
 

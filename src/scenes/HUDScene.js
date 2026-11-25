@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { TOWERS, statLine } from '../config/towers.js';
 import { towerStats } from '../logic/towers.js';
 import { WAVES } from '../config/waves.js';
-import { BUILD_SPOTS } from '../config/map.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
 import { describeEffect } from './TastingScene.js';
@@ -11,7 +10,10 @@ import { play, isMuted, setMuted } from '../fx/sound.js';
 const CARD_W = 168, CARD_H = 92, CARD_Y = 664;
 const TOAST = {
   grapes: 'Not enough grapes',
-  occupied: 'That spot is taken',
+  occupied: 'Too close to another tower',
+  path: 'Not on the path: build beside it',
+  decor: 'Mind the candles and barrels',
+  bounds: 'Build inside the cellar',
   unique: 'Thomas is already on duty',
   max: 'Fully upgraded',
 };
@@ -513,7 +515,7 @@ export class HUDScene extends Phaser.Scene {
   // ---------- upgrade panel ----------
   openUpgrade(placed) {
     this.closeUpgrade(true);
-    const spot = BUILD_SPOTS.find((s) => s.id === placed.spotId);
+    const spot = { x: placed.x, y: placed.y };
     const W = 280, H = 168;
     const x = Phaser.Math.Clamp(spot.x, W / 2 + 12, 1280 - W / 2 - 12);
     const y = spot.y > 330 ? spot.y - 30 - H / 2 : spot.y + 40 + H / 2;
