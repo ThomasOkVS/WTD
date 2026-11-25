@@ -16,3 +16,9 @@ export function pickTarget(tower, enemies) {
   }
   return best;
 }
+
+// A recruit's HP is a damage budget: each smash spends what it deals.
+export function recruitSmash(budget, foeHp) {
+  const deal = Math.max(0, Math.min(budget, foeHp));
+  return { deal, left: Math.max(0, budget - deal) };
+}

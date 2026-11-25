@@ -5,6 +5,7 @@ import { WAVES } from '../config/waves.js';
 import { createPath } from '../logic/path.js';
 import { createGameState, earn, loseLives } from '../logic/state.js';
 import { canPlace, placeTower, upgradeTower, snap, towerStats } from '../logic/towers.js';
+import { recruitSmash } from '../logic/combat.js';
 import { buildSchedule, createWaveRunner, waveBonus } from '../logic/waves.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
@@ -451,6 +452,7 @@ export class GameScene extends Phaser.Scene {
     this.enemies.splice(i, 1); // towers ignore it, it can't leak
     enemy.recruit();
     enemy.struck = new Set(); // pests it already hit: each one only once
+    enemy.budget = enemy.maxHp; // its HP is a damage budget: each smash spends what it deals
     this.recruits.push(enemy);
     const g = this.add.graphics().setDepth(2560);
     g.lineStyle(3, 0xffd36b, 0.9).lineBetween(tower.stats.x, tower.stats.y - 20, enemy.x, enemy.y);
@@ -466,9 +468,16 @@ export class GameScene extends Phaser.Scene {
         if (!foe.alive || r.struck.has(foe) || Math.hypot(foe.x - r.x, foe.y - r.y) > 20) continue;
         r.struck.add(foe);
         this.sparks.explode(6, foe.x, foe.y);
-        this.damageEnemy(foe, r.hp);
+        // armour is added so a smash with enough budget really kills
+        const { deal, left } = recruitSmash(r.budget, foe.hp + (foe.armour || 0));
+        this.damageEnemy(foe, deal);
+        r.budget = left;
+        if (left <= 0) break;
       }
-      if (r.distance <= 0) this.dismissRecruit(r);
+      if (r.budget <= 0) {
+        this.floatText(r.x, r.y - 18, 'Spent!', '#ffd36b');
+        this.dismissRecruit(r);
+      } else if (r.distance <= 0) this.dismissRecruit(r);
     }
   }
 

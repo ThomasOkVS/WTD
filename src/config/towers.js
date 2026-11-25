@@ -22,10 +22,10 @@ export const TOWERS = {
   },
   thomas: {
     name: 'Thomas', blurb: 'Recruits a pest that walks back and smashes every pest it meets. Towers near him fire faster.',
-    cost: 120, range: 140, damage: 8, rate: 1.5, recruitCooldownMs: 6000, aura: 0.15, auraRange: 120, unique: true, maxHp: 100,
+    cost: 120, range: 140, damage: 8, rate: 1.5, recruitCooldownMs: 8000, aura: 0.15, auraRange: 120, unique: true, maxHp: 100,
     upgrades: [
-      { cost: 150, name: 'Senior Recruiter', recruitCooldownMs: 4500, maxHp: 140 },
-      { cost: 250, name: 'Head of Talent', recruitCooldownMs: 3000, aura: 0.25, maxHp: 200 },
+      { cost: 150, name: 'Senior Recruiter', recruitCooldownMs: 6000, maxHp: 140 },
+      { cost: 250, name: 'Head of Talent', recruitCooldownMs: 4500, aura: 0.25, maxHp: 200 },
     ],
   },
 };

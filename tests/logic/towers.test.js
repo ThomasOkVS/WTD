@@ -67,15 +67,15 @@ describe('towers', () => {
     const s = createGameState();
     s.grapes = 1000;
     const t = placeTower(s, 'thomas', B);
-    expect(towerStats(t).recruitCooldownMs).toBe(6000);
+    expect(towerStats(t).recruitCooldownMs).toBe(8000);
     expect(towerStats(t).aura).toBe(0.15);
     expect(upgradeTower(s, t)).toBe(true);
     expect(s.grapes).toBe(1000 - 120 - 150);
     expect(t.level).toBe(1);
-    expect(towerStats(t).recruitCooldownMs).toBe(4500);
+    expect(towerStats(t).recruitCooldownMs).toBe(6000);
     expect(towerStats(t).name).toBe('Senior Recruiter');
     expect(upgradeTower(s, t)).toBe(true);
-    expect(towerStats(t).recruitCooldownMs).toBe(3000);
+    expect(towerStats(t).recruitCooldownMs).toBe(4500);
     expect(towerStats(t).aura).toBe(0.25);
     expect(upgradeTower(s, t)).toBe(false);
     expect(t.level).toBe(2);
