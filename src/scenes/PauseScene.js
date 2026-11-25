@@ -48,8 +48,8 @@ export class PauseScene extends Phaser.Scene {
     const H = victory ? 300 : 396;
     const c = this.add.container(640, 360);
     const p = panel(this, 0, 0, 440, H);
-    const title = this.add.text(0, -H / 2 + 52, victory ? 'The cellar holds!' : 'Paused', serif(40, PALETTE.candleGold)).setOrigin(0.5);
-    title.setShadow(0, 3, '#120a0d', 6, false, true);
+    const title = this.add.text(0, -H / 2 + 52, victory ? 'The cellar holds!' : 'Paused', serif(40, PALETTE.burgundy)).setOrigin(0.5);
+    title.setShadow(0, 2, '#e8c07a', 0, false, true); // burgundy on parchment: gold only as a soft underline
     c.add([p, title]);
 
     if (victory) {
@@ -57,14 +57,15 @@ export class PauseScene extends Phaser.Scene {
       c.add([
         sub,
         button(this, 0, 20, 300, 52, 'Keep pouring', () => this.keepPouring(), { size: 22 }),
-        button(this, 0, 86, 300, 52, 'Claim victory', () => this.claimVictory(), { size: 22 }),
+        button(this, 0, 86, 300, 52, 'Claim victory', () => this.claimVictory(), { size: 22, variant: 'secondary' }),
       ]);
     } else {
       c.add([
         button(this, 0, -72, 280, 52, 'Resume', () => this.resume(), { size: 22 }),
-        button(this, 0, -6, 280, 52, 'Controls', () => this.showControls(true), { size: 22 }),
-        button(this, 0, 60, 280, 52, 'Restart', () => this.restart(), { size: 22 }),
-        button(this, 0, 126, 280, 52, 'Back to title', () => this.toTitle(), { size: 22 }),
+        button(this, 0, -6, 280, 52, 'Controls', () => this.showControls(true), { size: 22, variant: 'secondary' }),
+        button(this, 0, 60, 280, 52, 'Restart', () => this.restart(), { size: 22, variant: 'secondary' }),
+        button(this, 0, 126, 280, 52, 'Back to title', () => this.toTitle(), { size: 22, variant: 'danger' }),
+        this.add.text(0, 174, 'P / Esc to resume', body(16, PALETTE.ink)).setOrigin(0.5).setAlpha(0.7),
       ]);
       this.menu = c;
       this.controls = this.buildControls();
@@ -88,8 +89,8 @@ export class PauseScene extends Phaser.Scene {
   buildControls() {
     const c = this.add.container(640, 360).setVisible(false);
     const p = panel(this, 0, 0, 1000, 540);
-    const title = this.add.text(0, -222, 'Controls', serif(36, PALETTE.candleGold)).setOrigin(0.5);
-    title.setShadow(0, 3, '#120a0d', 6, false, true);
+    const title = this.add.text(0, -222, 'Controls', serif(36, PALETTE.burgundy)).setOrigin(0.5);
+    title.setShadow(0, 2, '#e8c07a', 0, false, true);
     c.add([p, title]);
     const column = (x, heading, rows) => {
       c.add(this.add.text(x, -168, heading, serif(20, PALETTE.burgundy)).setOrigin(0, 0.5));
@@ -107,7 +108,7 @@ export class PauseScene extends Phaser.Scene {
     };
     column(-460, 'Playing', PLAY_KEYS);
     column(30, 'Presenter shortcuts', PRESENTER_KEYS);
-    c.add(button(this, 0, 220, 220, 48, 'Back', () => this.showControls(false), { size: 20 }));
+    c.add(button(this, 0, 220, 220, 48, 'Back', () => this.showControls(false), { size: 20, variant: 'secondary' }));
     return c;
   }
 
