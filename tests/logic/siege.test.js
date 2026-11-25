@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createGameState } from '../../src/logic/state.js';
 import { canPlace, placeTower, upgradeTower, towerStats } from '../../src/logic/towers.js';
 import {
-  damageTower, investedIn, repairCost, repairTower, removeTower,
+  damageTower, investedIn, repairCost, repairTower, removeTower, createAttacker, tickAttacker,
 } from '../../src/logic/siege.js';
+import { ENEMIES, SIEGE } from '../../src/config/enemies.js';
 
 const A = { x: 250, y: 220 };
 const B = { x: 500, y: 220 };
@@ -61,5 +62,60 @@ describe('siege: tower hp and repair', () => {
     removeTower(s, t);
     expect(s.towers).not.toContain(t);
     expect(canPlace(s, 'thomas', B).ok).toBe(true);
+  });
+});
+
+const P = { x: 0, y: 0 };
+const T = (id, x, y = 0) => ({ id, x, y, hp: 100 });
+
+describe('siege: pest attackers', () => {
+  it('dash hits nearest in reach, then waits its cooldown', () => {
+    const a = createAttacker(ENEMIES.fly.attack);
+    expect(tickAttacker(a, P, [T(1, 80), T(2, 40)], 16).hits).toEqual([{ id: 2, damage: 3 }]);
+    expect(tickAttacker(a, P, [T(2, 40)], 1000).hits).toEqual([]);
+    expect(tickAttacker(a, P, [T(2, 40)], 900).hits).toHaveLength(1);
+  });
+  it('nothing in reach -> no hit', () => {
+    expect(tickAttacker(createAttacker(ENEMIES.fly.attack), P, [T(1, 91)], 16).hits).toEqual([]);
+  });
+  it('ignores dead towers', () => {
+    const dead = { ...T(1, 20), hp: 0 };
+    expect(tickAttacker(createAttacker(ENEMIES.corkscrew.attack), P, [dead], 16).hits).toEqual([]);
+  });
+  it('ranged hits at range', () => {
+    expect(tickAttacker(createAttacker(ENEMIES.corkscrew.attack), P, [T(1, 125)], 16).hits).toEqual([{ id: 1, damage: 6 }]);
+  });
+  it('chew holds and bites 4 times, then never re-chews that tower', () => {
+    const a = createAttacker(ENEMIES.rat.attack);
+    let bites = 0; let r;
+    for (let t = 0; t < 2500; t += 50) { r = tickAttacker(a, P, [T(1, 70)], 50); bites += r.hits.length; }
+    expect(bites).toBe(4);
+    expect(r.holding).toBe(false);
+  });
+  it('chew lets go when its target dies', () => {
+    const a = createAttacker(ENEMIES.rat.attack);
+    expect(tickAttacker(a, P, [T(1, 70)], 16).holding).toBe(true);
+    expect(tickAttacker(a, P, [], 16).holding).toBe(false);
+  });
+  it('burst marks selfDestruct once', () => {
+    const a = createAttacker(ENEMIES.can.attack);
+    expect(tickAttacker(a, P, [T(1, 60)], 16)).toMatchObject({ hits: [{ id: 1, damage: 25 }], selfDestruct: true });
+    const again = tickAttacker(a, P, [T(1, 60)], 16);
+    expect(again.hits).toEqual([]);
+    expect(again.selfDestruct).toBe(false);
+  });
+  it('slam hits every tower in reach', () => {
+    const r = tickAttacker(createAttacker(ENEMIES.monstre.attack), P, [T(1, 100), T(2, 150), T(3, 170)], 16);
+    expect(r.hits.map((h) => h.id)).toEqual([1, 2]);
+    expect(r.hits[0].damage).toBe(30);
+  });
+  it('damageMult scales and floors at 1', () => {
+    SIEGE.damageMult = 0.1;
+    try {
+      expect(tickAttacker(createAttacker(ENEMIES.fly.attack), P, [T(1, 10)], 16).hits).toEqual([{ id: 1, damage: 1 }]);
+    } finally { SIEGE.damageMult = 1; }
+  });
+  it('every enemy has an attack with reach >= 70', () => {
+    for (const e of Object.values(ENEMIES)) expect(e.attack.reach).toBeGreaterThanOrEqual(70);
   });
 });
