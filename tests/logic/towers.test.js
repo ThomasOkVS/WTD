@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGameState } from '../../src/logic/state.js';
-import { canPlace, placeTower, upgradeTower, towerStats } from '../../src/logic/towers.js';
+import { canPlace, placeTower, upgradeTower, towerStats, auraMult } from '../../src/logic/towers.js';
 import { TOWERS } from '../../src/config/towers.js';
 
 describe('towers', () => {
@@ -30,14 +30,16 @@ describe('towers', () => {
     const s = createGameState();
     s.grapes = 1000;
     const t = placeTower(s, 'thomas', 'B');
-    expect(towerStats(t).recruitCooldownMs).toBe(12000);
+    expect(towerStats(t).recruitCooldownMs).toBe(6000);
+    expect(towerStats(t).aura).toBe(0.15);
     expect(upgradeTower(s, t)).toBe(true);
     expect(s.grapes).toBe(1000 - 120 - 150);
     expect(t.level).toBe(1);
-    expect(towerStats(t).recruitCooldownMs).toBe(8000);
+    expect(towerStats(t).recruitCooldownMs).toBe(4500);
     expect(towerStats(t).name).toBe('Senior Recruiter');
     expect(upgradeTower(s, t)).toBe(true);
-    expect(towerStats(t).recruitCooldownMs).toBe(5000);
+    expect(towerStats(t).recruitCooldownMs).toBe(3000);
+    expect(towerStats(t).aura).toBe(0.25);
     expect(upgradeTower(s, t)).toBe(false);
     expect(t.level).toBe(2);
   });
@@ -47,6 +49,16 @@ describe('towers', () => {
     s.grapes = 0;
     expect(upgradeTower(s, t)).toBe(false);
     expect(t.level).toBe(0);
+  });
+  it('Thomas boosts the fire rate of towers near him, not himself or far ones', () => {
+    const thomas = { type: 'thomas', x: 0, y: 0, aura: 0.15, auraRange: 120 };
+    const near = { type: 'cork', x: 100, y: 0 };
+    const far = { type: 'cork', x: 130, y: 0 };
+    const all = [thomas, near, far];
+    expect(auraMult(all, near)).toBeCloseTo(1.15);
+    expect(auraMult(all, far)).toBe(1);
+    expect(auraMult(all, thomas)).toBe(1);
+    expect(auraMult([near, far], near)).toBe(1);
   });
   it('config has names and 1-2 upgrades each', () => {
     for (const c of Object.values(TOWERS)) {

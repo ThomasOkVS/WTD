@@ -26,6 +26,17 @@ export function upgradeTower(state, tower) {
   return true;
 }
 
+// Thomas's "team morale": fire-rate multiplier for one tower from every aura
+// tower (Thomas) within its auraRange. Takes positioned stats {type, x, y, ...}.
+export function auraMult(all, tower) {
+  let mult = 1;
+  for (const a of all) {
+    if (a === tower || !a.aura) continue;
+    if (Math.hypot(a.x - tower.x, a.y - tower.y) <= a.auraRange) mult *= 1 + a.aura;
+  }
+  return mult;
+}
+
 // Base config merged with the upgrades bought so far (cost/upgrades omitted).
 export function towerStats(tower) {
   const { upgrades, cost, ...base } = TOWERS[tower.type];

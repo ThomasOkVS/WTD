@@ -263,6 +263,7 @@ export class GameScene extends Phaser.Scene {
     if (i < 0) return;
     this.enemies.splice(i, 1); // towers ignore it, it can't leak
     enemy.recruit();
+    enemy.struck = new Set(); // pests it already hit: each one only once
     this.recruits.push(enemy);
     const g = this.add.graphics().setDepth(2560);
     g.lineStyle(3, 0xffd36b, 0.9).lineBetween(tower.stats.x, tower.stats.y - 20, enemy.x, enemy.y);
@@ -273,13 +274,14 @@ export class GameScene extends Phaser.Scene {
   updateRecruits(dt) {
     for (const r of [...this.recruits]) {
       r.update(dt, this.clock);
-      const foe = this.enemies.find((e) => e.alive && Math.hypot(e.x - r.x, e.y - r.y) <= 20);
-      if (foe) {
+      // walks back to the entrance and smashes every pest it passes through
+      for (const foe of [...this.enemies]) {
+        if (!foe.alive || r.struck.has(foe) || Math.hypot(foe.x - r.x, foe.y - r.y) > 20) continue;
+        r.struck.add(foe);
+        this.sparks.explode(6, foe.x, foe.y);
         this.damageEnemy(foe, r.hp);
-        this.dismissRecruit(r);
-      } else if (r.distance <= 0) {
-        this.dismissRecruit(r);
       }
+      if (r.distance <= 0) this.dismissRecruit(r);
     }
   }
 

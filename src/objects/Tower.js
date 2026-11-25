@@ -1,6 +1,6 @@
 import { BUILD_SPOTS } from '../config/map.js';
 import { pickTarget } from '../logic/combat.js';
-import { towerStats } from '../logic/towers.js';
+import { towerStats, auraMult } from '../logic/towers.js';
 import { applyBuffs } from '../logic/buffs.js';
 import { Projectile } from './Projectile.js';
 import { play } from '../fx/sound.js';
@@ -26,6 +26,11 @@ export class Tower {
     const { x, y } = this.stats;
     this.sprite = scene.add.image(x, y + 20, `tower-${placed.type}`).setOrigin(0.5, 0.85).setDepth(y + 20).setScale(0);
     scene.tweens.add({ targets: this.sprite, scale: 1, duration: 260, ease: 'Back.easeOut' });
+    if (this.stats.aura) {
+      // Thomas's morale aura: faint gold circle, above the darkness so it reads
+      this.auraRing = scene.add.circle(x, y, this.stats.auraRange).setStrokeStyle(2, 0xffd36b, 0.3).setDepth(2540).setAlpha(0);
+      scene.tweens.add({ targets: this.auraRing, alpha: { from: 1, to: 0.55 }, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    }
   }
 
   // Quiet stat recompute (after a Wine Tasting buff).
@@ -61,7 +66,8 @@ export class Tower {
     const s = this.stats;
     const target = pickTarget(s, enemies);
     if (!target) return;
-    this.cooldown = 1 / (s.rate * (this.scene.powerUp?.fireRateMult() ?? 1));
+    const morale = auraMult(this.scene.towers.map((t) => t.stats), s);
+    this.cooldown = 1 / (s.rate * morale * (this.scene.powerUp?.fireRateMult() ?? 1));
     // squash only when idle: overlapping the pop-in/upgrade tween left it stretched
     if (!this.scene.tweens.isTweening(this.sprite)) {
       this.scene.tweens.add({ targets: this.sprite, scaleY: { from: 1, to: 0.92 }, duration: 60, yoyo: true });
@@ -111,5 +117,6 @@ export class Tower {
 
   destroy() {
     this.sprite.destroy();
+    this.auraRing?.destroy();
   }
 }
