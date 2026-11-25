@@ -1,0 +1,25 @@
+<svg viewBox="0 0 400 250" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="a-light1" cx="0.3" cy="0.35" r="0.55"><stop offset="0" stop-color="#ffb35c" stop-opacity=".55"/><stop offset="1" stop-color="#ffb35c" stop-opacity="0"/></radialGradient>
+          <radialGradient id="a-light2" cx="0.78" cy="0.7" r="0.45"><stop offset="0" stop-color="#ff9a3c" stop-opacity=".45"/><stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/></radialGradient>
+          <radialGradient id="a-vig" cx="0.5" cy="0.5" r="0.75"><stop offset="0.55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".85"/></radialGradient>
+          <pattern id="a-stone" width="40" height="24" patternUnits="userSpaceOnUse"><rect width="40" height="24" fill="#3a2a22"/><rect x="1" y="1" width="38" height="10" rx="2" fill="#46332a"/><rect x="-19" y="13" width="38" height="10" rx="2" fill="#42302781"/><rect x="21" y="13" width="38" height="10" rx="2" fill="#42302a"/></pattern>
+          <filter id="a-glow"><feGaussianBlur stdDeviation="3"/></filter>
+        </defs>
+        <rect width="400" height="250" fill="url(#a-stone)"/>
+        <path d="M-10 60 C 80 60, 90 180, 180 180 S 300 70, 410 110" stroke="#1f140f" stroke-width="34" fill="none" stroke-linecap="round"/>
+        <path d="M-10 60 C 80 60, 90 180, 180 180 S 300 70, 410 110" stroke="#5a3d2b" stroke-width="26" fill="none" stroke-linecap="round"/>
+        <g><ellipse cx="60" cy="150" rx="22" ry="16" fill="#6b3f22"/><ellipse cx="60" cy="150" rx="22" ry="16" fill="none" stroke="#2b1a10" stroke-width="3"/><ellipse cx="60" cy="150" rx="12" ry="8" fill="#7d4b2a"/></g>
+        <g><ellipse cx="250" cy="200" rx="22" ry="16" fill="#6b3f22"/><ellipse cx="250" cy="200" rx="12" ry="8" fill="#7d4b2a"/></g>
+        <g><ellipse cx="300" cy="50" rx="22" ry="16" fill="#6b3f22"/><ellipse cx="300" cy="50" rx="12" ry="8" fill="#7d4b2a"/></g>
+        <circle cx="130" cy="95" r="12" fill="#8a1c2b" stroke="#e8c07a" stroke-width="2"/><circle cx="130" cy="95" r="40" fill="none" stroke="#e8c07a" stroke-opacity=".25" stroke-dasharray="3 4"/>
+        <circle cx="240" cy="120" r="11" fill="#2c4a3a" stroke="#e8c07a" stroke-width="2"/>
+        <circle cx="95" cy="110" r="5" fill="#c9a96e"/><circle cx="105" cy="122" r="4" fill="#c9a96e"/><circle cx="200" cy="176" r="6" fill="#4a3a30"/>
+        <g filter="url(#a-glow)"><circle cx="232" cy="125" r="4" fill="#d01a3a"/><circle cx="220" cy="140" r="3" fill="#d01a3a"/></g>
+        <rect x="380" y="98" width="10" height="26" rx="3" fill="#3d0d14" stroke="#e8c07a" stroke-width="1.5"/>
+        <rect width="400" height="250" fill="url(#a-light1)"/><rect width="400" height="250" fill="url(#a-light2)"/>
+        <circle cx="120" cy="80" r="3" fill="#fff3c4" filter="url(#a-glow)"/><circle cx="312" cy="175" r="3" fill="#fff3c4" filter="url(#a-glow)"/>
+        <rect width="400" height="250" fill="url(#a-vig)"/>
+        <rect x="10" y="10" width="110" height="26" rx="4" fill="#e9dcc0" opacity=".92"/><text x="20" y="28" font-family="Georgia, serif" font-size="13" fill="#3a1a12">🍇 340 Grapes</text>
+        <rect x="290" y="10" width="100" height="26" rx="4" fill="#e9dcc0" opacity=".92"/><text x="302" y="28" font-family="Georgia, serif" font-size="13" fill="#3a1a12">Wave 3 / 8</text>
+      </svg>
