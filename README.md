@@ -45,6 +45,7 @@ Presenter shortcuts. They work in the dev and production builds and have no on-s
 | `D` | Every tower drops to 25% HP ("The pests bite back!"): puts Repair and destruction on cue |
 | `M` | Mute / unmute |
 | `P` / `Esc` | Pause: Resume, Restart, Back to title (`Esc` first cancels a placement or closes the upgrade panel) |
+| `F` | 2× speed (toggle; every new run starts at 1×) |
 
 Except `M`, the keys are ignored while the Wine Tasting is open (the cellar is paused) and after game over. Digits use the physical number row (no Shift needed on AZERTY).
 

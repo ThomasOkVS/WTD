@@ -56,6 +56,7 @@ export class HUDScene extends Phaser.Scene {
     this.createPower();
     this.createMute();
     this.createPauseBtn();
+    this.createSpeedBtn();
     this.toast = this.createToast();
 
     this.listen('grapes-changed', this.onGrapes);
@@ -73,6 +74,7 @@ export class HUDScene extends Phaser.Scene {
     this.listen('repair-refused', this.onRepairRefused);
     this.listen('tower-destroyed', this.onTowerDestroyed);
     this.listen('power-changed', this.setPower);
+    this.listen('speed-changed', (n) => { this.speed = n; this.speedUi.draw(); });
     this.listen('power-refused', () => this.showToast('Save it for the pests!'));
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
     this.listen('buff-added', (wine) => this.banner(`Buff: ${wine.name}`, describeEffect(wine.effect).replace('\n', ', ')));
@@ -185,6 +187,21 @@ export class HUDScene extends Phaser.Scene {
       this.emit('pause');
     }, (g) => {
       g.fillStyle(COLORS.candleGold, 1).fillRect(-7, -8, 5, 16).fillRect(2, -8, 5, 16);
+    });
+  }
+
+  createSpeedBtn() {
+    this.speed = 1;
+    this.speedUi = this.roundBtn(340, 180, 'Speed (F)', 'Toggle 1x / 2x. Everything in the cellar runs twice as fast.', () => {
+      this.emit('toggle-speed');
+    }, (g, ui) => {
+      const fast = this.speed === 2;
+      if (fast) g.lineStyle(3, COLORS.amber, 1).strokeCircle(0, 0, 22);
+      if (!ui.label) {
+        ui.label = this.add.text(0, 1, '', serif(18, PALETTE.candleGold)).setOrigin(0.5);
+        ui.c.addAt(ui.label, 1);
+      }
+      ui.label.setText(fast ? '2×' : '1×');
     });
   }
 

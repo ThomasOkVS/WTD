@@ -51,6 +51,10 @@ export class GameScene extends Phaser.Scene {
     this.recruits = [];
     this.tastingOpen = false;
     this.pauseOpen = false;
+    // Clock and TweenManager survive restarts: a new run always starts at 1x.
+    this.speed = 1;
+    this.time.timeScale = 1;
+    this.tweens.timeScale = 1;
     this.powerUp = createPowerUp(POWER); // starts charged: demo it right away
     this.powerEmitAt = 0;
     this.heartbeatIn = 0;
@@ -70,6 +74,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('activate-power', this.activatePower, this);
     this.events.on('tasting-picked', this.onTastingPicked, this);
     this.events.on('pause', this.onPauseClicked, this);
+    this.events.on('toggle-speed', this.toggleSpeed, this);
     this.input.keyboard.on('keydown-ESC', this.onEsc, this);
     // Presenter keys: work in the production build too, no UI.
     this.input.keyboard.on('keydown', this.onDemoKey, this);
@@ -191,6 +196,19 @@ export class GameScene extends Phaser.Scene {
     this.scene.get('HUD')?.closeUpgrade(true);
     if (this.selectedType) this.selectTower(this.selectedType);
     this.openPause();
+  }
+
+  // ---------- 2x speed: game logic (dt), scene timers and tweens all scale ----------
+  setSpeed(n) {
+    this.speed = n;
+    this.time.timeScale = n;
+    this.tweens.timeScale = n;
+    this.events.emit('speed-changed', n);
+  }
+
+  toggleSpeed() {
+    if (this.ending) return;
+    this.setSpeed(this.speed === 2 ? 1 : 2);
   }
 
   // ---------- pause menu ----------
@@ -430,6 +448,7 @@ export class GameScene extends Phaser.Scene {
     const digit = /^(?:Digit|Numpad)([1-7])$/.exec(e.code);
     const k = (e.key || '').toLowerCase();
     if (k === 'p') this.openPause();
+    else if (k === 'f') this.toggleSpeed();
     else if (digit) this.jumpToWave(Number(digit[1]));
     else if (k === 'b') this.spawnEnemy('monstre');
     else if (k === 'g') {
@@ -613,7 +632,7 @@ export class GameScene extends Phaser.Scene {
 
   update(_time, delta) {
     if (this.ending) return;
-    const dt = Math.min(delta, 100) / 1000; // clamp so a tab switch doesn't teleport enemies
+    const dt = (Math.min(delta, 100) / 1000) * this.speed; // clamp so a tab switch doesn't teleport enemies
     this.clock += dt * 1000;
 
     if (this.runner) for (const type of this.runner.tick(dt * 1000)) this.spawnEnemy(type);
@@ -681,6 +700,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('activate-power', this.activatePower, this);
     this.events.off('tasting-picked', this.onTastingPicked, this);
     this.events.off('pause', this.onPauseClicked, this);
+    this.events.off('toggle-speed', this.toggleSpeed, this);
     this.input.keyboard.off('keydown-ESC', this.onEsc, this);
     this.input.keyboard.off('keydown', this.onDemoKey, this);
     this.input.off('pointermove', this.onPointerMove, this);
