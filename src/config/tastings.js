@@ -6,6 +6,6 @@ export const TASTING_WINES = [
   { id: 'slow-pinot', name: 'Slow Pinot', line: 'Take your time. The enemies certainly will.', effect: { stat: 'slowMs', mult: 1.3 } },
   { id: 'grape-harvest', name: 'Grape Harvest', line: 'Great ROI: more grapes per candidate.', effect: { stat: 'reward', mult: 1.25 } },
   { id: 'merlot-momentum', name: 'Merlot Momentum', line: 'Smooth, fast, and perfect for onboarding.', effect: { stat: 'rate', mult: 1.15 } },
-  { id: 'grand-decant', name: 'Grand Decant', line: 'Lots of body, lots of splash. A full-time hire.', effect: { stat: 'splash', mult: 1.3, tower: 'decanter' } },
+  { id: 'grand-decant', name: 'Grand Decant', line: 'Lots of body, a wider pour. A full-time hire.', effect: { stat: 'range', mult: 1.25, tower: 'decanter' } },
   { id: 'tannin-talent', name: 'Tannin Talent', line: 'Bold structure. Strong team player.', effect: { stat: 'damage', mult: 1.15 } },
 ];

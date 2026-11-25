@@ -42,6 +42,24 @@ export function splash(scene, x, y) {
   }).explode(12, x, y);
 }
 
+// Decanter burst: a flat ring of wine flung outward in every direction.
+// No gravity, evenly spaced angles, so it reads as a ring around the tower.
+export function wineRing(scene, x, y, radius) {
+  const e = emitter(scene, 'wineRing', 'drop', {
+    maxAliveParticles: 200,
+    scale: { start: 0.85, end: 0.3 },
+    alpha: { start: 1, end: 0 },
+    tint: [0x8a1c2b, 0xd01a3a, 0x5e0f1c],
+  });
+  const n = 22;
+  e.setParticleSpeed(radius * 2.6);
+  e.setParticleLifespan(360);
+  for (let i = 0; i < n; i++) {
+    e.setEmitterAngle((360 * i) / n + Math.random() * 8);
+    e.explode(1, x, y);
+  }
+}
+
 // Little puff + chips when a cork cannon fires.
 export function corkPop(scene, x, y) {
   emitter(scene, 'cork', 'spark', {

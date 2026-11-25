@@ -4,7 +4,7 @@ import { towerStats } from '../logic/towers.js';
 import { applyBuffs } from '../logic/buffs.js';
 import { Projectile } from './Projectile.js';
 import { play } from '../fx/sound.js';
-import { corkPop } from '../fx/particles.js';
+import { corkPop, wineRing } from '../fx/particles.js';
 
 // Placed tower (state object) -> merged stats (+ Wine Tasting buffs) + its build-spot position.
 export function towerInfo(placed, buffs = []) {
@@ -76,6 +76,10 @@ export class Tower {
       this.scene.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
       return;
     }
+    if (s.type === 'decanter') {
+      this.burst(s);
+      return;
+    }
     if (s.type === 'cork') {
       play('cork', { pitch: 0.9 + Math.random() * 0.2 });
       corkPop(this.scene, s.x, s.y - 18);
@@ -87,6 +91,22 @@ export class Tower {
         splash: s.splash || 0,
       }),
     );
+  }
+
+  // Decanter: wine bursts out all around the tower and hits every pest in
+  // range. Copy the list: kills splice it and the boss split pushes cans.
+  burst(s) {
+    const scene = this.scene;
+    for (const e of [...scene.enemies]) {
+      if (Math.hypot(e.x - s.x, e.y - s.y) <= s.range) scene.damageEnemy(e, s.damage);
+    }
+    play('splash');
+    wineRing(scene, s.x, s.y - 6, s.range);
+    const ring = scene.add.circle(s.x, s.y, s.range, 0x8a1c2b, 0.35).setDepth(2545).setScale(0.2); // above the darkness: reads at night
+    ring.setStrokeStyle(3, 0xd01a3a, 0.9);
+    // grow fast, fade late: a fast-out alpha made the ring invisible after ~100ms
+    scene.tweens.add({ targets: ring, scale: 1, duration: 280, ease: 'Cubic.easeOut' });
+    scene.tweens.add({ targets: ring, alpha: 0, duration: 420, ease: 'Quad.easeIn', onComplete: () => ring.destroy() });
   }
 
   destroy() {

@@ -14,10 +14,10 @@ export const TOWERS = {
     ],
   },
   decanter: {
-    name: 'Decanter', blurb: 'Lobs wine that splashes a small area.', cost: 90, range: 120, damage: 18, splash: 60, rate: 0.8,
+    name: 'Decanter', blurb: 'Bursts wine all around itself, hitting every pest close by. Build it next to the path.', cost: 90, range: 100, damage: 35, rate: 0.9,
     upgrades: [
-      { cost: 80, name: 'Crystal Decanter', damage: 28, splash: 75 },
-      { cost: 140, name: 'Vintage Decanter', damage: 40, splash: 90, rate: 1.0 },
+      { cost: 80, name: 'Crystal Decanter', damage: 50, range: 110 },
+      { cost: 140, name: 'Vintage Decanter', damage: 70, range: 120, rate: 1.1 },
     ],
   },
   thomas: {
