@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSchedule, createWaveRunner, waveBonus } from '../../src/logic/waves.js';
+import { buildSchedule, createWaveRunner, waveBonus, describeWave } from '../../src/logic/waves.js';
 import { WAVES } from '../../src/config/waves.js';
 import { ENEMIES } from '../../src/config/enemies.js';
 
@@ -34,5 +34,17 @@ describe('waves', () => {
   it('waveBonus', () => {
     expect(waveBonus(0)).toBe(20);
     expect(waveBonus(6)).toBe(50);
+  });
+});
+
+describe('describeWave', () => {
+  it('lists groups by type in order', () => {
+    expect(describeWave({ groups: [{ type: 'rat', count: 7 }, { type: 'fly', count: 16 }] })).toBe('Rats ×7 · Flies ×16');
+  });
+  it('merges groups of the same type', () => {
+    expect(describeWave({ groups: [{ type: 'fly', count: 12 }, { type: 'fly', count: 8 }] })).toBe('Flies ×20');
+  });
+  it('announces the boss', () => {
+    expect(describeWave(WAVES[6])).toBe('Le Monstre Blanc!');
   });
 });

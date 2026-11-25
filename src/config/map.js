@@ -18,6 +18,7 @@ export const PLAYFIELD = { minX: 30, maxX: 1250, minY: 60, maxY: 590 };
 export const HUD_ZONES = [
   { x0: 0, x1: 364, y0: 0, y1: 86 },
   { x0: 940, x1: 1280, y0: 0, y1: 86 },
+  { x0: 860, x1: 1280, y0: 566, y1: 720 }, // next-wave preview + Auto chip
 ];
 export const PATH_CLEARANCE = 44; // tower centre to path centreline (path is 56px wide)
 export const TOWER_SPACING = 48; // tower centre to tower centre

@@ -26,3 +26,13 @@ export function createWaveRunner(schedule) {
   };
   return runner;
 }
+
+const PLURAL = { fly: 'Flies', corkscrew: 'Corkscrews', rat: 'Rats', can: 'Cans' };
+
+// "Rats ×7 · Flies ×16": groups merged by type, in first-appearance order.
+export function describeWave(wave) {
+  if (wave.groups.some((g) => g.type === 'monstre')) return 'Le Monstre Blanc!';
+  const counts = new Map();
+  for (const g of wave.groups) counts.set(g.type, (counts.get(g.type) || 0) + g.count);
+  return [...counts].map(([type, n]) => `${PLURAL[type] || type} ×${n}`).join(' · ');
+}

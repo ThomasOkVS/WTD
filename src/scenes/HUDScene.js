@@ -3,6 +3,7 @@ import { TOWERS, statLine } from '../config/towers.js';
 import { towerStats } from '../logic/towers.js';
 import { repairCost } from '../logic/siege.js';
 import { WAVES } from '../config/waves.js';
+import { describeWave } from '../logic/waves.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
 import { describeEffect } from './TastingScene.js';
@@ -74,6 +75,7 @@ export class HUDScene extends Phaser.Scene {
     this.listen('repair-refused', this.onRepairRefused);
     this.listen('tower-destroyed', this.onTowerDestroyed);
     this.listen('power-changed', this.setPower);
+    this.listen('auto-wave-tick', this.onAutoTick);
     this.listen('speed-changed', (n) => { this.speed = n; this.speedUi.draw(); });
     this.listen('power-refused', () => this.showToast('Save it for the pests!'));
     this.listen('boss-spawned', () => this.banner('Le Monstre Blanc approaches!', 'Sugar-free. Ice-cold. Enormous.'));
@@ -270,6 +272,8 @@ export class HUDScene extends Phaser.Scene {
     this.wave = i + 1;
     this.updateWaveText();
     this.nextBtn.setEnabled(false);
+    this.onAutoTick(null);
+    this.refreshPreview(false);
     this.banner(`Wave ${i + 1}`, i === WAVES.length - 1 ? 'Le Monstre Blanc stirs' : `of ${WAVES.length}`);
     if (!this.powerHinted && this.power.ready) {
       this.powerHinted = true; // first wave of the run, whichever number it is
@@ -279,6 +283,7 @@ export class HUDScene extends Phaser.Scene {
 
   onWaveCleared(i) {
     if (i < WAVES.length - 1) {
+      this.refreshPreview(true);
       this.nextBtn.setEnabled(true);
       this.banner(`Wave ${i + 1} cleared`, 'Build, then call the next wave');
     }
@@ -337,6 +342,63 @@ export class HUDScene extends Phaser.Scene {
 
     this.nextBtn = button(this, 1160, CARD_Y, 190, 60, 'Next wave', () => this.emit('start-wave'), { size: 24 });
     enter(this, this.nextBtn, { dy: 40, delay: 320, duration: 280 });
+    this.createPreview();
+  }
+
+  // ---------- next-wave preview + Auto toggle (just above Next wave) ----------
+  createPreview() {
+    const y = 584;
+    this.preview = this.add.text(1172, y, '', body(18, PALETTE.parchment)).setOrigin(1, 0.5);
+    this.preview.setShadow(0, 2, '#120a0d', 4, false, true);
+    // Auto chip: checkbox + label; the setting lives in the registry so it survives restarts
+    const c = this.add.container(1218, y);
+    const g = this.add.graphics();
+    const label = this.add.text(-10, 0, 'Auto', body(18, PALETTE.candleGold)).setOrigin(0, 0.5);
+    label.setShadow(0, 2, '#120a0d', 4, false, true);
+    const hit = this.add.zone(10, 0, 76, 28).setInteractive({ useHandCursor: true });
+    c.add([g, label, hit]);
+    this.autoUi = { c, g, hover: false };
+    hit.on('pointerdown', () => {
+      play('click');
+      this.emit('toggle-auto');
+      this.drawAuto();
+    });
+    hit.on('pointerover', () => {
+      this.autoUi.hover = true; this.drawAuto();
+      this.showTip(1160, y - 20, 'Auto next wave', 'The next wave starts 3s after a wave is cleared.');
+    });
+    hit.on('pointerout', () => { this.autoUi.hover = false; this.drawAuto(); this.hideTip(); });
+    this.drawAuto();
+    this.refreshPreview(true);
+    enter(this, this.preview, { dy: 20, delay: 360, duration: 280 });
+    enter(this, c, { dy: 20, delay: 380, duration: 280 });
+  }
+
+  drawAuto() {
+    const { g, hover } = this.autoUi;
+    const on = !!this.registry.get('autoWave');
+    g.clear();
+    g.fillStyle(0x3d0d14, 1).fillRoundedRect(-30, -9, 18, 18, 4);
+    g.lineStyle(2, COLORS.candleGold, hover ? 1 : 0.8).strokeRoundedRect(-30, -9, 18, 18, 4);
+    if (on) g.lineStyle(3, COLORS.amber, 1).lineBetween(-26, 0, -22, 5).lineBetween(-22, 5, -15, -5);
+  }
+
+  // Description of the wave the Next wave button would start, or null.
+  nextWaveText() {
+    const next = WAVES[this.wave];
+    return next ? `Next: ${describeWave(next)}` : null;
+  }
+
+  refreshPreview(show) {
+    const text = show ? this.nextWaveText() : null;
+    this.preview.setText(text || '').setVisible(!!text);
+    fitText(this.preview.setScale(1), 300);
+  }
+
+  onAutoTick(n) {
+    const label = this.nextBtn.label;
+    label.setText(n == null ? 'Next wave' : `Next wave in ${n}…`);
+    fitText(label.setScale(1), 168);
   }
 
   cardState(type) {

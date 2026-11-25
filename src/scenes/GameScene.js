@@ -53,6 +53,8 @@ export class GameScene extends Phaser.Scene {
     this.pauseOpen = false;
     // Clock and TweenManager survive restarts: a new run always starts at 1x.
     this.speed = 1;
+    this.autoIn = null; // ms until the auto next wave, null = no countdown
+    this.autoShown = null;
     this.time.timeScale = 1;
     this.tweens.timeScale = 1;
     this.powerUp = createPowerUp(POWER); // starts charged: demo it right away
@@ -75,6 +77,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('tasting-picked', this.onTastingPicked, this);
     this.events.on('pause', this.onPauseClicked, this);
     this.events.on('toggle-speed', this.toggleSpeed, this);
+    this.events.on('toggle-auto', this.toggleAuto, this);
     this.input.keyboard.on('keydown-ESC', this.onEsc, this);
     // Presenter keys: work in the production build too, no UI.
     this.input.keyboard.on('keydown', this.onDemoKey, this);
@@ -381,7 +384,43 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('tower-repaired', tower.placed);
   }
 
+  // ---------- auto next wave ----------
+  hasNextWave() {
+    return this.state.wave < WAVES.length;
+  }
+
+  toggleAuto() {
+    const on = !this.registry.get('autoWave');
+    this.registry.set('autoWave', on);
+    // between waves (after at least one), turning it on starts the countdown right away
+    if (on && !this.runner && this.state.wave > 0 && this.enemies.length === 0 && this.hasNextWave()) this.autoIn = 3000;
+    if (!on) this.clearAuto();
+  }
+
+  clearAuto() {
+    this.autoIn = null;
+    this.emitAuto(null);
+  }
+
+  emitAuto(n) {
+    if (n === this.autoShown) return;
+    this.autoShown = n;
+    this.events.emit('auto-wave-tick', n);
+  }
+
+  // Counts only while the cellar is idle and nothing modal is open (pause freezes update anyway).
+  updateAuto(dtMs) {
+    if (this.autoIn == null) return;
+    if (this.runner || this.enemies.length || this.tastingOpen || this.pauseOpen || this.ending) return;
+    this.autoIn -= dtMs;
+    if (this.autoIn <= 0) {
+      this.clearAuto();
+      this.startWave();
+    } else this.emitAuto(Math.ceil(this.autoIn / 1000));
+  }
+
   startWave() {
+    this.clearAuto();
     if (this.runner || this.ending || this.tastingOpen || this.state.wave >= WAVES.length) return;
     this.waveIndex = this.state.wave;
     this.state.wave += 1;
@@ -651,6 +690,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyAttacks(dt * 1000);
 
     this.updateRecruits(dt);
+    this.updateAuto(dt * 1000);
     // Le Monstre Blanc's footsteps rattle the cellar
     if (this.enemies.some((e) => e.boss)) {
       this.shakeIn -= dt * 1000;
@@ -674,6 +714,7 @@ export class GameScene extends Phaser.Scene {
       this.events.emit('grapes-changed', this.state.grapes);
       for (const r of [...this.recruits]) this.dismissRecruit(r);
       this.events.emit('wave-cleared', i);
+      if (this.registry.get('autoWave') && this.hasNextWave()) this.autoIn = 3000;
       if (i === WAVES.length - 1) {
         this.state.status = 'won';
         this.endGame('won');
@@ -701,6 +742,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('tasting-picked', this.onTastingPicked, this);
     this.events.off('pause', this.onPauseClicked, this);
     this.events.off('toggle-speed', this.toggleSpeed, this);
+    this.events.off('toggle-auto', this.toggleAuto, this);
     this.input.keyboard.off('keydown-ESC', this.onEsc, this);
     this.input.keyboard.off('keydown', this.onDemoKey, this);
     this.input.off('pointermove', this.onPointerMove, this);
