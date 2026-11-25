@@ -368,7 +368,9 @@ export class GameScene extends Phaser.Scene {
     this.powerEmitAt = 100; // ~10 Hz
     const p = this.powerUp;
     const fraction = p.ready ? 1 : p.active ? p.activeLeft / POWER.durationMs : 1 - p.cooldownLeft / POWER.cooldownMs;
-    this.events.emit('power-changed', { ready: p.ready, active: p.active, fraction });
+    const secondsLeft = Math.ceil((p.active ? p.activeLeft : p.cooldownLeft) / 1000);
+    const frozen = !this.runner && this.enemies.length === 0;
+    this.events.emit('power-changed', { ready: p.ready, active: p.active, fraction, secondsLeft, frozen });
   }
 
   removeEnemy(enemy, animated) {

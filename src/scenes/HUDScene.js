@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { TOWERS } from '../config/towers.js';
+import { TOWERS, statLine } from '../config/towers.js';
+import { towerStats } from '../logic/towers.js';
 import { WAVES } from '../config/waves.js';
 import { BUILD_SPOTS } from '../config/map.js';
 import { PALETTE, COLORS } from '../config/palette.js';
@@ -41,6 +42,10 @@ export class HUDScene extends Phaser.Scene {
     this.bannerBox = null;
     this.bannerChain = null;
     this.toastChain = null;
+    this.tip = null;
+    this.powerHover = false;
+    this.powerInfo = null;
+    this.powerHinted = false;
 
     this.createTop();
     this.createBar();
@@ -206,6 +211,10 @@ export class HUDScene extends Phaser.Scene {
     this.updateWaveText();
     this.nextBtn.setEnabled(false);
     this.banner(`Wave ${i + 1}`, i === WAVES.length - 1 ? 'Le Monstre Blanc stirs' : `of ${WAVES.length}`);
+    if (!this.powerHinted && this.power.ready) {
+      this.powerHinted = true; // first wave of the run, whichever number it is
+      this.time.delayedCall(1700, () => this.showToast('Taureau Rouge is charged: click the can for double fire rate!', 3200));
+    }
   }
 
   onWaveCleared(i) {
@@ -229,7 +238,9 @@ export class HUDScene extends Phaser.Scene {
     enter(this, strip, { duration: 300 });
 
     this.cards = {};
-    Object.entries(TOWERS).forEach(([type, cfg], i) => {
+    // cheapest first; sorted at build time so retuned prices reorder themselves
+    const byCost = Object.entries(TOWERS).sort(([, a], [, b]) => a.cost - b.cost);
+    byCost.forEach(([type, cfg], i) => {
       const x = 24 + CARD_W / 2 + i * (CARD_W + 10);
       const c = this.add.container(x, CARD_Y);
       const glow = this.add.image(0, 0, 'light-soft').setBlendMode(Phaser.BlendModes.ADD).setTint(COLORS.amber)
@@ -248,9 +259,14 @@ export class HUDScene extends Phaser.Scene {
       c.add([glow, bg, ring, icon, name, grape, cost, flash, hit]);
       c.baseX = x;
       Object.assign(c, { type, glow, ring, icon, cost, grape, flash, hover: false, dimmable: [bg, icon, name, grape, cost] });
-      hit.on('pointerover', () => { c.hover = true; this.styleCard(c); });
-      hit.on('pointerout', () => { c.hover = false; this.styleCard(c); });
+      hit.on('pointerover', () => {
+        c.hover = true;
+        this.styleCard(c);
+        this.showTip(x, CARD_Y - CARD_H / 2 - 10, cfg.name, cfg.blurb, statLine(towerStats({ type, level: 0 })));
+      });
+      hit.on('pointerout', () => { c.hover = false; this.styleCard(c); this.hideTip(); });
       hit.on('pointerdown', () => {
+        this.hideTip();
         play('click');
         this.closeUpgrade();
         this.emit('select-tower', type);
@@ -345,7 +361,7 @@ export class HUDScene extends Phaser.Scene {
     return t;
   }
 
-  showToast(msg) {
+  showToast(msg, hold = 1100) {
     const t = this.toast;
     t.text.setText(msg);
     const w = t.text.width + 36;
@@ -358,7 +374,7 @@ export class HUDScene extends Phaser.Scene {
       targets: t,
       tweens: [
         { alpha: 1, y: 588, duration: 180, ease: 'Cubic.easeOut' },
-        { alpha: 0, duration: 300, delay: 1100 },
+        { alpha: 0, duration: 300, delay: hold },
       ],
     });
   }
@@ -387,11 +403,15 @@ export class HUDScene extends Phaser.Scene {
     });
     // hover only touches the glow when idle-ready; the active pulse owns it otherwise
     hit.on('pointerover', () => {
+      this.powerHover = true;
+      this.showPowerTip();
       if (!this.power.ready || this.power.active) return;
       this.tweens.killTweensOf(glow);
       this.tweens.add({ targets: glow, alpha: 0.7, duration: 160 });
     });
     hit.on('pointerout', () => {
+      this.powerHover = false;
+      this.hideTip();
       if (this.power.active) return;
       this.tweens.killTweensOf(glow);
       this.tweens.add({ targets: glow, alpha: this.power.ready ? 0.35 : 0, duration: 160 });
@@ -403,7 +423,9 @@ export class HUDScene extends Phaser.Scene {
     this.setPower(this.power);
   }
 
-  setPower({ ready = false, active = false, fraction = 0 } = {}) {
+  setPower({ ready = false, active = false, fraction = 0, secondsLeft = 0, frozen = false } = {}) {
+    this.powerInfo = { ready, active, secondsLeft, frozen };
+    if (this.powerHover) this.showPowerTip();
     const wasReady = this.power.ready;
     const wasActive = this.power.active;
     this.power = { ready, active, fraction };
@@ -434,6 +456,58 @@ export class HUDScene extends Phaser.Scene {
       this.tweens.killTweensOf(glow);
       this.tweens.add({ targets: glow, alpha: 0, duration: 200 });
     }
+  }
+
+  // ---------- hover tooltips (cards, Taureau Rouge) ----------
+  // A standalone parchment label whose bottom edge sits at (x, bottom); not a
+  // child of the card, so the card's lift/shake tweens never drag it along.
+  showTip(x, bottom, title, line, stats) {
+    this.hideTip(true);
+    const W = 272, PAD = 16;
+    const c = this.add.container(0, 0).setDepth(50);
+    const t = this.add.text(0, 0, title, serif(16)).setOrigin(0.5, 0);
+    const l = this.add.text(0, 0, line, body(17, INK, { wordWrap: { width: W - PAD * 2 }, align: 'center' })).setOrigin(0.5, 0);
+    const st = stats ? this.add.text(0, 0, stats, body(15, PALETTE.burgundy, { wordWrap: { width: W - PAD * 2 }, align: 'center' })).setOrigin(0.5, 0) : null;
+    const H = PAD + t.height + 2 + l.height + (st ? 4 + st.height : 0) + PAD - 2;
+    let y = -H / 2 + PAD - 2;
+    t.y = y; y += t.height + 2;
+    l.y = y; y += l.height + 4;
+    if (st) st.y = y;
+    c.add([panel(this, 0, 0, W, H), t, l, ...(st ? [st] : [])]);
+    c.setPosition(Phaser.Math.Clamp(x, W / 2 + 8, 1280 - W / 2 - 8), bottom - H / 2);
+    c.ui = { t, l, st };
+    this.tip = c;
+    enter(this, c, { dy: 8, duration: 180 });
+    return c;
+  }
+
+  hideTip(instant = false) {
+    const c = this.tip;
+    if (!c) return;
+    this.tip = null;
+    this.tweens.killTweensOf(c);
+    if (instant === true) return c.destroy();
+    this.tweens.add({ targets: c, alpha: 0, duration: 120, onComplete: () => c.destroy() });
+  }
+
+  powerStateText() {
+    const p = this.powerInfo || {};
+    if (p.active) return `Active: ${p.secondsLeft}s left`;
+    if (p.ready) return 'Ready: click it while a wave is running';
+    return `Recharging: ${p.secondsLeft}s${p.frozen ? ' (paused between waves)' : ''}`;
+  }
+
+  // Built once on hover, then only its state line is rewritten (~10 Hz).
+  showPowerTip() {
+    const text = this.powerStateText();
+    if (this.tip?.power) {
+      if (this.tip.ui.st.text !== text) this.tip.ui.st.setText(text);
+      return;
+    }
+    const { x, y } = this.powerUi.c;
+    const tip = this.showTip(x, y - this.powerUi.r - 10, 'Taureau Rouge Grand Cru',
+      'All towers fire twice as fast for 10s, then it recharges for 45s.', text);
+    tip.power = true;
   }
 
   // ---------- upgrade panel ----------
