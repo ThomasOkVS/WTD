@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { isProjector, onProjectorChange } from './projector.js';
 
 // Candle lighting: a full-screen darkness RenderTexture with soft holes erased
 // at every light, an additive amber glow on top and the vignette above that.
@@ -6,9 +7,12 @@ import Phaser from 'phaser';
 export const LIGHT_DEPTH = { darkness: 2500, glow: 2600, vignette: 2700 };
 
 const DARKNESS = 0x120a0d;
-const DARK_ALPHA = 0.82;
 const AMBER = 0xffb35c;
-const GLOW_ALPHA = 0.35;
+// Projector mode (L) lifts the darkness and vignette and strengthens the glow.
+const MODES = {
+  off: { dark: 0.82, vignette: 1, glow: 0.35 },
+  on: { dark: 0.45, vignette: 0.4, glow: 0.4 }, // glow 0.5 washed out clustered towers
+};
 const FLICKER = 0.06;
 const TEX = 256; // light-soft texture size; radius r => scale r / 128
 
@@ -18,8 +22,9 @@ const TEX = 256; // light-soft texture size; radius r => scale r / 128
 // give a dim ambient light (used along the path). Move a light by setting
 // light.x / light.y. Updates itself every frame.
 export function createLighting(scene, { candles = [] } = {}) {
-  const rt = scene.add.renderTexture(0, 0, 1280, 720).setOrigin(0).setDepth(LIGHT_DEPTH.darkness).setAlpha(DARK_ALPHA);
-  const vignette = scene.add.image(0, 0, 'vignette').setOrigin(0).setDepth(LIGHT_DEPTH.vignette);
+  let mode = MODES[isProjector() ? 'on' : 'off'];
+  const rt = scene.add.renderTexture(0, 0, 1280, 720).setOrigin(0).setDepth(LIGHT_DEPTH.darkness).setAlpha(mode.dark);
+  const vignette = scene.add.image(0, 0, 'vignette').setOrigin(0).setDepth(LIGHT_DEPTH.vignette).setAlpha(mode.vignette);
   const lights = [];
   let erasers = [];
 
@@ -34,7 +39,8 @@ export function createLighting(scene, { candles = [] } = {}) {
       ? scene.add.image(x, y, 'light-soft').setBlendMode(Phaser.BlendModes.ADD).setTint(tint).setAlpha(0).setDepth(LIGHT_DEPTH.glow)
       : null;
     const light = { x, y, radius, eraser, core, sprite, seed: Math.random() * Math.PI * 2, rate: 0.002 + Math.random() * 0.003 };
-    if (sprite) scene.tweens.add({ targets: sprite, alpha: GLOW_ALPHA * strength, duration: 300 });
+    light.strength = strength;
+    if (sprite) scene.tweens.add({ targets: sprite, alpha: mode.glow * strength, duration: 300 });
     lights.push(light);
     erasers = lights.flatMap((l) => (l.core ? [l.eraser, l.core] : [l.eraser]));
     return light;
@@ -66,10 +72,25 @@ export function createLighting(scene, { candles = [] } = {}) {
 
   for (const c of candles) addLight(c.x, c.y, c.radius);
 
+  // Tween to the current projector mode; new lights read `mode` when added.
+  function applyProjector(on) {
+    mode = MODES[on ? 'on' : 'off'];
+    scene.tweens.killTweensOf([rt, vignette]);
+    scene.tweens.add({ targets: rt, alpha: mode.dark, duration: 250 });
+    scene.tweens.add({ targets: vignette, alpha: mode.vignette, duration: 250 });
+    for (const l of lights) {
+      if (!l.sprite) continue;
+      scene.tweens.killTweensOf(l.sprite);
+      scene.tweens.add({ targets: l.sprite, alpha: mode.glow * l.strength, duration: 250 });
+    }
+  }
+  const offProjector = onProjectorChange(applyProjector);
+
   const onUpdate = (time) => update(time);
   scene.events.on('update', onUpdate);
   scene.events.once('shutdown', () => {
     scene.events.off('update', onUpdate);
+    offProjector();
     for (const l of [...lights]) removeLight(l);
     rt.destroy();
     vignette.destroy();

@@ -7,6 +7,7 @@ import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
 import { describeEffect } from './TastingScene.js';
 import { play, isMuted, setMuted } from '../fx/sound.js';
+import { onProjectorChange } from '../fx/projector.js';
 
 const CARD_W = 168, CARD_H = 92, CARD_Y = 664;
 const TOAST = {
@@ -81,7 +82,9 @@ export class HUDScene extends Phaser.Scene {
     });
 
     this.input.keyboard.on('keydown-ESC', this.closeUpgrade, this);
+    const offProjector = onProjectorChange((on) => this.showToast(on ? 'Projector mode on' : 'Projector mode off'));
     this.events.once('shutdown', () => {
+      offProjector();
       for (const [name, fn] of this.listeners) this.game$.off(name, fn, this);
       this.listeners = [];
       this.input.keyboard.off('keydown-ESC', this.closeUpgrade, this);
