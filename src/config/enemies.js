@@ -10,4 +10,5 @@ export const ENEMIES = {
 };
 
 // Pests fight back: global tuning for tower damage and repair pricing.
-export const SIEGE = { damageMult: 1, repairShare: 0.5 };
+// damageMult 0.4: an unrepaired honest build loses ~1 tower by wave 6 and still wins.
+export const SIEGE = { damageMult: 0.4, repairShare: 0.5 };

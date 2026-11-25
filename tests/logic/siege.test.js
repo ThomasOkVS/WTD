@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createGameState } from '../../src/logic/state.js';
 import { canPlace, placeTower, upgradeTower, towerStats } from '../../src/logic/towers.js';
 import {
@@ -69,6 +69,11 @@ const P = { x: 0, y: 0 };
 const T = (id, x, y = 0) => ({ id, x, y, hp: 100 });
 
 describe('siege: pest attackers', () => {
+  // the logic tests use the raw config numbers; the tuned multiplier is checked on its own
+  let tuned;
+  beforeEach(() => { tuned = SIEGE.damageMult; SIEGE.damageMult = 1; });
+  afterEach(() => { SIEGE.damageMult = tuned; });
+
   it('dash hits nearest in reach, then waits its cooldown', () => {
     const a = createAttacker(ENEMIES.fly.attack);
     expect(tickAttacker(a, P, [T(1, 80), T(2, 40)], 16).hits).toEqual([{ id: 2, damage: 3 }]);
@@ -111,9 +116,9 @@ describe('siege: pest attackers', () => {
   });
   it('damageMult scales and floors at 1', () => {
     SIEGE.damageMult = 0.1;
-    try {
-      expect(tickAttacker(createAttacker(ENEMIES.fly.attack), P, [T(1, 10)], 16).hits).toEqual([{ id: 1, damage: 1 }]);
-    } finally { SIEGE.damageMult = 1; }
+    expect(tickAttacker(createAttacker(ENEMIES.fly.attack), P, [T(1, 10)], 16).hits).toEqual([{ id: 1, damage: 1 }]);
+    SIEGE.damageMult = 2;
+    expect(tickAttacker(createAttacker(ENEMIES.fly.attack), P, [T(1, 10)], 16).hits).toEqual([{ id: 1, damage: 6 }]);
   });
   it('every enemy has an attack with reach >= 70', () => {
     for (const e of Object.values(ENEMIES)) expect(e.attack.reach).toBeGreaterThanOrEqual(70);
