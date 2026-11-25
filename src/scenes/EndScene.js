@@ -21,7 +21,7 @@ export class EndScene extends Phaser.Scene {
   }
 
   create() {
-    hdCamera(this); // 2x canvas, same 1280x720 world
+    hdCamera(this); // HD canvas, same 1280x720 world
     const won = this.result === 'won';
     drawCellar(this, { grandCru: false });
     const veil = this.add.rectangle(640, 360, 1280, 720, 0x120a0d, 0).setDepth(2900);

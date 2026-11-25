@@ -34,7 +34,7 @@ export class TastingScene extends Phaser.Scene {
   }
 
   create() {
-    hdCamera(this); // 2x canvas, same 1280x720 world
+    hdCamera(this); // HD canvas, same 1280x720 world
     this.picked = false; // instance is reused every wave: reset here
     this.game$ = this.scene.get('Game').events;
     this.wines = drawTasting();

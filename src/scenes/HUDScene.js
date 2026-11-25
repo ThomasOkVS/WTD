@@ -38,7 +38,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   create() {
-    hdCamera(this); // 2x canvas, same 1280x720 world
+    hdCamera(this); // HD canvas, same 1280x720 world
     this.game$ = this.scene.get('Game').events;
     this.input.enabled = true; // re-enable after a previous run's game-over
     this.listeners = [];

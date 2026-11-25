@@ -37,7 +37,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    hdCamera(this); // 2x canvas, same 1280x720 world
+    hdCamera(this); // HD canvas, same 1280x720 world
     // Fresh run state: everything is (re)initialised here, never in the constructor.
     this.state = createGameState();
     this.path = createPath(PATH);
@@ -143,6 +143,7 @@ export class GameScene extends Phaser.Scene {
       // grapes/unique don't depend on where you point: the ghost judges the spot only
       const spotOk = check.ok || check.reason === 'grapes' || check.reason === 'unique';
       this.ghost.setTexture(`tower-${this.selectedType}`).setPosition(pos.x, pos.y + 20).setVisible(true)
+        .setScale(this.selectedType === 'thomas' ? 1.25 : 1) // matches Tower#baseScale
         .setTint(spotOk ? 0xffffff : 0xff6060);
       this.drawRange(pos.x, pos.y, TOWERS[this.selectedType].range, spotOk);
       return;
