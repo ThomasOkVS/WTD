@@ -82,7 +82,7 @@ function noise(t, dur, vol, { type = 'lowpass', f0 = 1000, f1 = null, q = 0.7, d
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 const SFX = {
-  place(t) { tone('triangle', 180, 90, t, 0.09, 0.7); noise(t, 0.05, 0.3, { f0: 900, f1: 300 }); tone('sine', 110, 70, t + 0.05, 0.1, 0.4); },
+  place(t, o) { const p = o.pitch || 1; tone('triangle', 180 * p, 90 * p, t, 0.09, 0.7); noise(t, 0.05, 0.3, { f0: 900 * p, f1: 300 * p }); tone('sine', 110 * p, 70 * p, t + 0.05, 0.1, 0.4); },
   cork(t, o) { const p = o.pitch || 1; noise(t, 0.07, 0.35, { type: 'bandpass', f0: 1800 * p, q: 1.2 }); tone('sine', 700 * p, 160 * p, t, 0.09, 0.6); },
   splash(t) { noise(t, 0.35, 0.45, { type: 'bandpass', f0: 400, f1: 2400, q: 0.9, attack: 0.08 }); },
   hit(t) { tone('triangle', 520 * rnd(0.9, 1.1), 380, t, 0.03, 0.22); },

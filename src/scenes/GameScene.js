@@ -229,8 +229,10 @@ export class GameScene extends Phaser.Scene {
   // (Tasting open): a paused scene's keyboard doesn't fire.
   onDemoKey(e) {
     if (e.repeat || this.ending || this.tastingOpen) return;
-    const k = e.key.toLowerCase();
-    if (k >= '1' && k <= '7') this.jumpToWave(Number(k));
+    // digits by physical key (AZERTY needs Shift for 1-7), letters by character
+    const digit = /^(?:Digit|Numpad)([1-7])$/.exec(e.code);
+    const k = (e.key || '').toLowerCase();
+    if (digit) this.jumpToWave(Number(digit[1]));
     else if (k === 'b') this.spawnEnemy('monstre');
     else if (k === 'g') {
       earn(this.state, 500);
@@ -319,6 +321,7 @@ export class GameScene extends Phaser.Scene {
       alpha: { start: 1, end: 0 },
       tint: [0xff3a4a, 0x5a8aff, 0xffd36b],
       blendMode: 'ADD',
+      maxAliveParticles: 80,
     }).setDepth(2660);
   }
 

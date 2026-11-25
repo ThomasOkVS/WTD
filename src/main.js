@@ -24,5 +24,5 @@ if (import.meta.env.DEV) Object.assign(window, { __game: game, __isMuted: isMute
 // M mutes everywhere (Title, Game, a paused Game under the Tasting, End).
 // One window listener: scene keyboards stop firing while their scene is paused.
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyM' && !e.repeat) toggleMuted();
+  if (e.key && e.key.toLowerCase() === 'm' && !e.repeat) toggleMuted(); // the letter, whatever the layout
 });

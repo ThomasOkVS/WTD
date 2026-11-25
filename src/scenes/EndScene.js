@@ -64,12 +64,12 @@ export class EndScene extends Phaser.Scene {
     const shards = this.add.particles(x, y, 'spark', {
       speed: { min: 140, max: 420 }, angle: { min: 0, max: 360 }, rotate: { min: 0, max: 360 },
       scale: { start: 0.9, end: 0.2 }, alpha: { start: 1, end: 0 }, lifespan: { min: 600, max: 1100 },
-      gravityY: 520, tint: [0xfff3c4, 0xe8c07a, 0xffffff], emitting: false,
+      gravityY: 520, tint: [0xfff3c4, 0xe8c07a, 0xffffff], emitting: false, maxAliveParticles: 80,
     }).setDepth(3050);
     const wine = this.add.particles(x, y + 20, 'drop', {
       speed: { min: 80, max: 300 }, angle: { min: 200, max: 340 },
       scale: { start: 1.1, end: 0.5 }, alpha: { start: 1, end: 0 }, lifespan: { min: 700, max: 1300 },
-      gravityY: 700, tint: [COLORS.wineRed, COLORS.burgundy], emitting: false,
+      gravityY: 700, tint: [COLORS.wineRed, COLORS.burgundy], emitting: false, maxAliveParticles: 80,
     }).setDepth(3040);
     shards.explode(36);
     wine.explode(48);
@@ -82,7 +82,7 @@ export class EndScene extends Phaser.Scene {
     this.tweens.add({ targets: halo, scale: halo.scale * 1.12, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.add.particles(bottle.x, bottle.y - 80, 'spark', {
       speed: { min: 10, max: 40 }, angle: { min: 240, max: 300 }, scale: { start: 0.6, end: 0 },
-      alpha: { start: 0.9, end: 0 }, lifespan: 1800, frequency: 120, tint: [0xffb35c, 0xe8c07a],
+      alpha: { start: 0.9, end: 0 }, lifespan: 1800, frequency: 120, tint: [0xffb35c, 0xe8c07a], maxAliveParticles: 80,
       emitZone: { type: 'random', source: new Phaser.Geom.Circle(0, 0, 60) },
     }).setDepth(3050);
   }
