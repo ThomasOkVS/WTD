@@ -35,7 +35,10 @@ export class Tower {
     const target = pickTarget(s, enemies);
     if (!target) return;
     this.cooldown = 1 / s.rate;
-    this.scene.tweens.add({ targets: this.sprite, scaleY: 0.92, duration: 60, yoyo: true });
+    // squash only when idle: overlapping the pop-in/upgrade tween left it stretched
+    if (!this.scene.tweens.isTweening(this.sprite)) {
+      this.scene.tweens.add({ targets: this.sprite, scaleY: { from: 1, to: 0.92 }, duration: 60, yoyo: true });
+    }
 
     if (s.type === 'sommelier') {
       // Slow instead of damage: a quick wine "pour" streak to the target.

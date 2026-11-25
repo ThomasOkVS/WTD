@@ -26,6 +26,8 @@ export class Enemy {
     this.sprite = scene.add.image(p.x, p.y, `enemy-${type}`).setRotation(p.angle).setAlpha(0);
     this.bar = scene.add.graphics().setVisible(false);
     scene.tweens.add({ targets: this.sprite, alpha: 1, duration: 200 });
+    // small dim halo so pests stay readable between the candle pools
+    this.light = scene.lighting?.addLight(p.x, p.y, 45, 0, { strength: 0.5, glow: false });
   }
 
   slow(amount, ms, now) {
@@ -40,6 +42,10 @@ export class Enemy {
     this.x = p.x;
     this.y = p.y;
     this.sprite.setPosition(p.x, p.y).setRotation(p.angle).setDepth(p.y);
+    if (this.light) {
+      this.light.x = p.x;
+      this.light.y = p.y;
+    }
     if (this.slowFactor < 1) this.sprite.setTint(0xc9a0ff);
     else this.sprite.clearTint();
     if (this.bar.visible) this.drawBar();
@@ -68,6 +74,9 @@ export class Enemy {
   destroy(animated = false) {
     this.alive = false;
     this.bar.destroy();
+    if (this.light) this.scene.lighting.removeLight(this.light);
+    this.light = null;
+    this.scene.tweens.killTweensOf(this.sprite); // the fade-in may still be running
     if (!animated) {
       this.sprite.destroy();
       return;

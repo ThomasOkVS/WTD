@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PALETTE } from '../config/palette.js';
 import { bindTextureGridKey } from '../art/textureGrid.js';
+import { drawCellar } from '../fx/cellar.js';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -8,6 +9,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    drawCellar(this); // lit-cellar backdrop
     const title = this.add
       .text(640, 340, 'Wine Cellar Siege', {
         fontFamily: 'Cinzel, serif',
@@ -16,6 +18,8 @@ export class TitleScene extends Phaser.Scene {
         color: PALETTE.candleGold,
       })
       .setOrigin(0.5)
+      .setDepth(3000)
+      .setShadow(0, 4, '#120a0d', 12, false, true)
       .setAlpha(0);
 
     this.tweens.add({ targets: title, alpha: 1, duration: 300, ease: 'Sine.easeOut' });
@@ -28,6 +32,8 @@ export class TitleScene extends Phaser.Scene {
         color: PALETTE.amber,
       })
       .setOrigin(0.5)
+      .setDepth(3000)
+      .setShadow(0, 3, '#120a0d', 10, false, true)
       .setAlpha(0)
       .setInteractive({ useHandCursor: true });
     play.on('pointerover', () => play.setColor(PALETTE.candleGold));

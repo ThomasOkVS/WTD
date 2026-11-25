@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PATH, BUILD_SPOTS, GRAND_CRU } from '../config/map.js';
+import { PATH, BUILD_SPOTS } from '../config/map.js';
 import { TOWERS } from '../config/towers.js';
 import { WAVES } from '../config/waves.js';
 import { createPath } from '../logic/path.js';
@@ -9,8 +9,7 @@ import { buildSchedule, createWaveRunner, waveBonus } from '../logic/waves.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
 import { createDebugHud } from './DebugHud.js';
-
-const PATH_W = 56;
+import { drawCellar } from '../fx/cellar.js';
 
 // Every custom event on this.events. All listeners for these are removed on
 // shutdown (scene.events survives restarts, so they would otherwise stack up).
@@ -38,7 +37,7 @@ export class GameScene extends Phaser.Scene {
     this.clock = 0; // ms of unpaused scene time
     this.ending = false;
 
-    this.drawCellar();
+    this.lighting = drawCellar(this);
     this.createSpots();
 
     this.events.on('start-wave', this.startWave, this);
@@ -51,22 +50,9 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.fadeIn(250, 18, 10, 13);
   }
 
-  drawCellar() {
-    this.add.tileSprite(0, 0, 1280, 720, 'stone-floor').setOrigin(0).setDepth(-100);
-    for (let i = 1; i < PATH.length; i++) {
-      const a = PATH[i - 1], b = PATH[i];
-      const len = Math.hypot(b.x - a.x, b.y - a.y);
-      this.add
-        .tileSprite((a.x + b.x) / 2, (a.y + b.y) / 2, len + PATH_W, PATH_W, 'path-tile')
-        .setRotation(Math.atan2(b.y - a.y, b.x - a.x))
-        .setDepth(-90);
-    }
-    this.add.image(GRAND_CRU.x, GRAND_CRU.y + 10, 'grand-cru').setOrigin(0.5, 0.9).setDepth(GRAND_CRU.y + 10);
-  }
-
   createSpots() {
     this.spots = {};
-    this.rangeRing = this.add.graphics().setDepth(-50);
+    this.rangeRing = this.add.graphics().setDepth(2550); // placement aid: above the darkness
     for (const spot of BUILD_SPOTS) {
       const ring = this.add.graphics().setDepth(-80).setAlpha(0);
       this.drawSpotRing(ring, spot, false);
@@ -100,6 +86,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   clickSpot(spot) {
+    if (this.ending) return;
     const tower = this.towerAt(spot.id);
     if (tower && !this.selectedType) {
       this.events.emit('upgrade-tower', tower.placed);
@@ -112,7 +99,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const placed = placeTower(this.state, this.selectedType, spot.id);
-    this.towers.push(new Tower(this, placed));
+    const built = new Tower(this, placed);
+    built.light = this.lighting.addLight(spot.x, spot.y, 90);
+    this.towers.push(built);
     this.spots[spot.id].ring.setVisible(false);
     this.rangeRing.clear();
     this.events.emit('grapes-changed', this.state.grapes);
