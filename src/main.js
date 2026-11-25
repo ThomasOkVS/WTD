@@ -19,6 +19,8 @@ const game = new Phaser.Game({
   backgroundColor: '#120a0d',
   audio: { noAudio: true }, // we synthesise our own WebAudio (src/fx/sound.js)
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  // perf: ask for the discrete GPU; no MSAA on the main framebuffer (texture smoothing is unaffected)
+  render: { powerPreference: 'high-performance', antialiasGL: false },
   // HUD after Game: array order is render order, so the HUD draws on top.
   // Tasting after HUD: the modal draws (and takes input) above both.
   scene: [BootScene, TitleScene, GameScene, HUDScene, TastingScene, PauseScene, EndScene],

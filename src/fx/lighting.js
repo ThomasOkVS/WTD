@@ -56,7 +56,11 @@ export function createLighting(scene, { candles = [] } = {}) {
     light.sprite?.destroy();
   }
 
+  // The darkness pass (fill + erase every light + render) is the costly part:
+  // redraw it every 2nd frame. A 30 Hz flicker reads the same.
+  let frame = 0;
   function update(time) {
+    if ((frame++ & 1) === 1) return;
     for (const l of lights) {
       // two detuned sines: organic flicker, amplitude stays within +-FLICKER
       const f = 1 + FLICKER * (0.7 * Math.sin(time * l.rate + l.seed) + 0.3 * Math.sin(time * l.rate * 3.7 + l.seed * 2));

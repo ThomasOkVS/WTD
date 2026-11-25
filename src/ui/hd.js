@@ -1,9 +1,9 @@
 // HD rendering: the canvas is HD times 1280x720 and every scene camera zooms
 // HD times around the old 1280x720 world, so no game coordinate changes.
-// Default 1.5 = a native 1920x1080 canvas (projector resolution): HD 2 halved
-// the frame rate in testing. Override per page load with ?hd=1 (the old 1x
-// canvas, the revert switch) or ?hd=2.
-const DEFAULT_HD = 1.5;
+// Default 1 (perf): 1.5 = a native 1920x1080 canvas looked sharper but nearly
+// halved the frame rate on an iGPU laptop. Override per page load with ?hd=1.5
+// (sharper, for a strong GPU) or ?hd=2.
+const DEFAULT_HD = 1; // perf: 1.5 cost ~1.7x the frame time on an iGPU laptop (43 vs 25 ms in wave 5); ?hd=1.5 still works
 
 function fromUrl() {
   try {

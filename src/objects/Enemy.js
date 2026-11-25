@@ -38,7 +38,11 @@ export class Enemy {
     scene.tweens.add({ targets: this.sprite, alpha: 1, duration: 200 });
     // small dim halo so pests stay readable between the candle pools
     // (the boss gets a bigger one so the big moment reads in the dark)
-    this.light = scene.lighting?.addLight(p.x, p.y, this.boss ? 130 : 60, 0, { strength: 0.9, glow: false });
+    // Perf: every light is an extra erase in the darkness pass each frame, so
+    // only the first dozen pests on the field get a halo (the boss always does).
+    if (this.boss || (scene.enemies?.length ?? 0) < 12) {
+      this.light = scene.lighting?.addLight(p.x, p.y, this.boss ? 130 : 60, 0, { strength: 0.9, glow: false });
+    }
   }
 
   // Thomas Recruit: turns gold, walks back towards the entrance.

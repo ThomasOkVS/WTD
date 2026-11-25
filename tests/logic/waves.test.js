@@ -62,6 +62,9 @@ describe('waveAt (endless)', () => {
   it('Le Monstre Blanc returns every 3rd endless wave', () => {
     expect(waveAt(9).groups.some((g) => g.type === 'monstre')).toBe(true);
   });
+  it('caps every endless group at 30 pests (perf)', () => {
+    for (const g of waveAt(40).groups) expect(g.count).toBeLessThanOrEqual(30);
+  });
   it('buildSchedule carries hpMult', () => {
     expect(buildSchedule(waveAt(7))[0].hpMult).toBeCloseTo(1.15);
     expect(buildSchedule(WAVES[0])[0].hpMult).toBe(1);

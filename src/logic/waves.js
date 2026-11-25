@@ -46,7 +46,7 @@ export function waveAt(index) {
   const k = index - WAVES.length + 1;
   const groups = WAVES[WAVES.length - 1].groups
     .filter((g) => g.type !== 'monstre')
-    .map((g) => ({ ...g, count: Math.round(g.count * (1 + 0.2 * k)) }));
+    .map((g) => ({ ...g, count: Math.min(30, Math.round(g.count * (1 + 0.2 * k))) })); // perf: cap per group
   if (k % 3 === 0) groups.push({ type: 'monstre', count: 1, intervalMs: 0, delayMs: 9000 });
   return { groups, hpMult: 1 + 0.15 * k };
 }
