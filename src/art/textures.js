@@ -383,6 +383,40 @@ function grandCru(ctx, w, h) {
 }
 
 // ---------- enemies (face right) ----------
+// Pests must be the highest-contrast thing on the dark path: draw the sprite,
+// then put a thin cream outline (from its solid pixels only, not the soft
+// shadow) behind it.
+function outlined(draw, px = 1.5) {
+  return (ctx, w, h) => {
+    const W = ctx.canvas.width, H = ctx.canvas.height;
+    const ss = W / w;
+    const off = document.createElement('canvas');
+    off.width = W; off.height = H;
+    const o = off.getContext('2d');
+    o.setTransform(ctx.getTransform());
+    draw(o, w, h);
+    const sil = document.createElement('canvas');
+    sil.width = W; sil.height = H;
+    const sc = sil.getContext('2d');
+    const img = o.getImageData(0, 0, W, H);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const solid = d[i + 3] > 150;
+      d[i] = 255; d[i + 1] = 240; d[i + 2] = 220; d[i + 3] = solid ? 217 : 0;
+    }
+    sc.putImageData(img, 0, 0);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const r = px * ss;
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      ctx.drawImage(sil, Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.drawImage(off, 0, 0);
+    ctx.restore();
+  };
+}
+
 function enemyFly(ctx, w, h) {
   const cx = w / 2, cy = h / 2;
   softShadow(ctx, cx + 2, cy + 4, 9, 5, 0.5);
@@ -1047,11 +1081,11 @@ export function generateTextures(scene) {
   make(scene, 'vignette', 1280, 720, vignette, 1);
   make(scene, 'grand-cru', 64, 96, grandCru);
   make(scene, 'grand-cru-broken', 64, 96, grandCruBroken);
-  make(scene, 'enemy-fly', 32, 32, enemyFly);
-  make(scene, 'enemy-corkscrew', 40, 32, enemyCorkscrew);
-  make(scene, 'enemy-rat', 44, 32, enemyRat);
+  make(scene, 'enemy-fly', 32, 32, outlined(enemyFly));
+  make(scene, 'enemy-corkscrew', 40, 32, outlined(enemyCorkscrew));
+  make(scene, 'enemy-rat', 44, 32, outlined(enemyRat));
   make(scene, 'enemy-monstre', 96, 48, enemyMonstre);
-  make(scene, 'enemy-can', 40, 24, enemyCan);
+  make(scene, 'enemy-can', 40, 24, outlined(enemyCan));
   make(scene, 'nest', 64, 48, nest);
   make(scene, 'tower-sommelier', 64, 64, towerSommelier);
   make(scene, 'tower-cork', 64, 64, towerCork);
