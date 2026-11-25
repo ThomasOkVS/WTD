@@ -213,7 +213,7 @@ export class GameScene extends Phaser.Scene {
     this.openPause();
   }
 
-  // ---------- 2x speed: game logic (dt), scene timers and tweens all scale ----------
+  // ---------- 1x / 2x / 3x speed: game logic (dt), scene timers and tweens all scale ----------
   setSpeed(n) {
     this.speed = n;
     this.time.timeScale = n;
@@ -223,7 +223,7 @@ export class GameScene extends Phaser.Scene {
 
   toggleSpeed() {
     if (this.ending) return;
-    this.setSpeed(this.speed === 2 ? 1 : 2);
+    this.setSpeed(this.speed >= 3 ? 1 : this.speed + 1); // 1x -> 2x -> 3x -> 1x
   }
 
   // ---------- pause menu ----------
@@ -827,7 +827,7 @@ export class GameScene extends Phaser.Scene {
     this.updateSummons(dt * 1000);
 
     this.updateRecruits(dt);
-    this.updateAuto((dt * 1000) / this.speed); // the countdown is 3 real seconds, also at 2x
+    this.updateAuto((dt * 1000) / this.speed); // the countdown is 3 real seconds at any speed
     // Le Monstre Blanc's footsteps rattle the cellar
     if (this.enemies.some((e) => e.boss)) {
       this.shakeIn -= dt * 1000;

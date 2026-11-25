@@ -211,16 +211,16 @@ export class HUDScene extends Phaser.Scene {
 
   createSpeedBtn() {
     this.speed = 1;
-    this.speedUi = this.roundBtn(340, 180, 'Speed (F)', 'Toggle 1x / 2x. Everything in the cellar runs twice as fast.', () => {
+    this.speedUi = this.roundBtn(340, 180, 'Speed (F)', 'Cycle 1x / 2x / 3x. Everything in the cellar runs that much faster.', () => {
       this.emit('toggle-speed');
     }, (g, ui) => {
-      const fast = this.speed === 2;
-      if (fast) g.lineStyle(3, COLORS.amber, 1).strokeCircle(0, 0, 22);
+      const fast = this.speed > 1;
+      if (fast) g.lineStyle(this.speed >= 3 ? 4 : 3, this.speed >= 3 ? 0xd01a3a : COLORS.amber, 1).strokeCircle(0, 0, 22); // 3x: red ring
       if (!ui.label) {
         ui.label = this.add.text(0, 1, '', serif(18, PALETTE.candleGold)).setOrigin(0.5);
         ui.c.addAt(ui.label, 1);
       }
-      ui.label.setText(fast ? '2×' : '1×');
+      ui.label.setText(`${this.speed}×`);
     });
   }
 

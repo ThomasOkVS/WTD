@@ -9,7 +9,7 @@ const PLAY_KEYS = [
   ['Right-click', 'Cancel building (or Esc)'],
   ['Click tower', 'Upgrade, Repair or Sell'],
   ['P / Esc', 'Pause'],
-  ['F', '2x speed'],
+  ['F', 'Speed 1x / 2x / 3x'],
   ['M', 'Mute / unmute'],
   ['L', 'Projector mode (brighter cellar)'],
 ];
