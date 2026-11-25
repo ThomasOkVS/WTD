@@ -17,6 +17,7 @@ export class EndScene extends Phaser.Scene {
     this.wave = data.wave || 0;
     this.kills = data.kills ?? null;
     this.endless = !!data.endless;
+    this.lives = data.lives ?? null;
     this.leaving = false; // scene instances are reused across runs
   }
 
@@ -47,12 +48,15 @@ export class EndScene extends Phaser.Scene {
     const reached = this.endless ? `Endless: held until wave ${this.wave}` : won ? `All ${WAVES.length} waves held back` : `Held until wave ${Math.max(1, this.wave)} of ${WAVES.length}`;
     const lines = [reached];
     if (this.kills !== null) lines.push(`${this.kills} pests dispatched`);
-    const stats = this.add.text(0, -4, lines.join('\n'), body(24, PALETTE.ink, { align: 'center' })).setOrigin(0.5).setLineSpacing(4);
+    if (this.lives !== null && won) lines.push(`Grand Cru left: ${this.lives}`);
+    const stats = this.add.text(0, -32, lines.join('\n'), body(lines.length > 2 ? 22 : 24, PALETTE.ink, { align: 'center' })).setOrigin(0.5, 0).setLineSpacing(2);
     c.add([p, title, rule, stats]);
     enter(this, c, { dy: 24, duration: 300, delay: 250 });
 
-    const again = button(this, 640, 548, 230, 58, 'Play again', () => this.again(again), { size: 26 }).setDepth(3100);
+    const again = button(this, 515, 548, 230, 58, 'Play again', () => this.leave('Game', [again, home]), { size: 26 }).setDepth(3100);
+    const home = button(this, 765, 548, 230, 58, 'Back to title', () => this.leave('Title', [again, home]), { size: 22, variant: 'secondary' }).setDepth(3100);
     enter(this, again, { dy: 18, duration: 260, delay: 450 });
+    enter(this, home, { dy: 18, duration: 260, delay: 520 });
   }
 
   // Glass-shatter burst: shards of light + wine drops, bottle gone.
@@ -79,6 +83,9 @@ export class EndScene extends Phaser.Scene {
     // a soft wine pool spreading where it stood
     const pool = this.add.image(x, bottle.y - 4, 'light-soft').setTint(COLORS.burgundy).setDisplaySize(20, 6).setAlpha(0.95).setDepth(3000);
     this.tweens.add({ targets: pool, displayWidth: 190, displayHeight: 44, duration: 1400, ease: 'Cubic.easeOut' });
+    const broken = this.add.image(x, bottle.y, 'grand-cru-broken').setOrigin(0.5, 0.9).setScale(1.7).setAlpha(0).setDepth(3001);
+    this.tweens.add({ targets: broken, alpha: 1, delay: 350, duration: 500 });
+    this.tweens.add({ targets: pool, displayWidth: 230, alpha: 0.75, delay: 1400, duration: 6000, ease: 'Sine.easeOut' });
   }
 
   celebrate(bottle, halo) {
@@ -90,11 +97,11 @@ export class EndScene extends Phaser.Scene {
     }).setDepth(3050);
   }
 
-  again(btn) {
+  leave(target, btns) {
     if (this.leaving) return;
     this.leaving = true;
-    btn.setEnabled(false);
+    btns.forEach((b) => b.setEnabled(false));
     this.cameras.main.fadeOut(300, 18, 10, 13);
-    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Game'));
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start(target));
   }
 }

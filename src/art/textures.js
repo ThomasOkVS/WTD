@@ -9,6 +9,7 @@ export const TEXTURE_KEYS = [
   'enemy-fly', 'enemy-corkscrew', 'enemy-rat', 'enemy-monstre', 'enemy-can', 'nest',
   'tower-sommelier', 'tower-cork', 'tower-decanter', 'tower-thomas',
   'proj-cork', 'proj-wine', 'drop', 'spark', 'taureau-rouge', 'parchment-panel',
+  'grand-cru-broken',
 ];
 
 // Extra colours derived from the palette (darker/lighter steps, glints).
@@ -300,6 +301,37 @@ function bottlePath(ctx, cx, top, bodyW, neckW, h, shoulder) {
   ctx.lineTo(cx - bw, top + shoulder);
   ctx.bezierCurveTo(cx - bw, top + shoulder * 0.75, cx - nw, top + shoulder * 0.8, cx - nw, top + shoulder * 0.45);
   ctx.closePath();
+}
+
+// The Grand Cru after the siege: neck snapped off at a jagged line, wine pooled.
+function grandCruBroken(ctx, w, h) {
+  const cx = w / 2;
+  ellipse(ctx, cx + 4, h - 6, 30, 6, 'rgba(90,10,24,0.9)'); // wine puddle
+  ellipse(ctx, cx + 10, h - 7, 16, 3, 'rgba(160,30,50,0.6)');
+  const jag = [[-17, 52], [-11, 44], [-6, 50], [-1, 40], [4, 49], [9, 43], [17, 51]];
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx - 20, h);
+  for (const [dx, y] of jag) ctx.lineTo(cx + dx, y);
+  ctx.lineTo(cx + 20, h);
+  ctx.closePath();
+  ctx.clip();
+  grandCru(ctx, w, h);
+  ctx.restore();
+  // bright glass edge along the break
+  ctx.strokeStyle = 'rgba(255,230,190,0.8)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  jag.forEach(([dx, y], i) => (i ? ctx.lineTo(cx + dx, y) : ctx.moveTo(cx + dx, y)));
+  ctx.stroke();
+  // a fallen shard and the snapped neck lying beside it
+  ctx.fillStyle = '#4a1020';
+  ctx.beginPath();
+  ctx.moveTo(cx + 22, h - 8); ctx.lineTo(cx + 28, h - 14); ctx.lineTo(cx + 30, h - 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,230,190,0.5)';
+  ctx.fillRect(cx - 30, h - 11, 9, 2);
 }
 
 function grandCru(ctx, w, h) {
@@ -1014,6 +1046,7 @@ export function generateTextures(scene) {
   make(scene, 'light-soft', 256, 256, (c, w) => lightSoft(c, w), 1); // soft gradient: 2x only costs memory
   make(scene, 'vignette', 1280, 720, vignette, 1);
   make(scene, 'grand-cru', 64, 96, grandCru);
+  make(scene, 'grand-cru-broken', 64, 96, grandCruBroken);
   make(scene, 'enemy-fly', 32, 32, enemyFly);
   make(scene, 'enemy-corkscrew', 40, 32, enemyCorkscrew);
   make(scene, 'enemy-rat', 44, 32, enemyRat);
