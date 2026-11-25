@@ -14,7 +14,7 @@ import { Tower } from '../objects/Tower.js';
 import { drawCellar } from '../fx/cellar.js';
 import { ENEMIES, NESTS } from '../config/enemies.js';
 import { createPowerUp } from '../logic/buffs.js';
-import { play } from '../fx/sound.js';
+import { play, listenGame } from '../fx/sound.js';
 import { startDust, shatter, splash, corkPop } from '../fx/particles.js';
 import {
   damageTower as hurtTower, removeTower, repairTower, tickAttacker, sellTower,
@@ -90,6 +90,7 @@ export class GameScene extends Phaser.Scene {
     // Presenter keys: work in the production build too, no UI.
     this.input.keyboard.on('keydown', this.onDemoKey, this);
     this.events.once('shutdown', this.cleanup, this);
+    listenGame(this); // boss / Endless music, ducks, pause dimming
 
     // HUD runs in parallel and talks to Game only through this.events.
     // launch() is queued, so starting values go in as data.
