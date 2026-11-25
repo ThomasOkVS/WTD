@@ -8,9 +8,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    hdCamera(this); // 2x canvas, same 1280x720 world
+    hdCamera(this); // HD canvas, same 1280x720 world
     let started = false;
-    // Generate after fonts load so the THOMAS name plate bakes in Cinzel.
+    // Generate after fonts load so Cinzel/Cormorant are ready for the first Text objects.
     const go = () => {
       if (started) return;
       started = true;

@@ -50,6 +50,9 @@ const SS = HD > 1 ? 2 : 1;
 
 function make(scene, key, w, h, draw, ss = SS) {
   if (scene.textures.exists(key)) return;
+  // The frame trick is WebGL-only: the Canvas renderer crops by cutWidth and
+  // would draw a quarter-image. A blocklisted GPU falls back to Canvas (AUTO).
+  if (scene.sys.game.renderer.type === 1 /* Phaser.CANVAS */) ss = 1;
   const tex = scene.textures.createCanvas(key, w * ss, h * ss);
   const ctx = tex.getContext();
   ctx.save();
