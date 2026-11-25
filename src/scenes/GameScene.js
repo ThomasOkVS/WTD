@@ -8,15 +8,20 @@ import { canPlace, placeTower, upgradeTower } from '../logic/towers.js';
 import { buildSchedule, createWaveRunner, waveBonus } from '../logic/waves.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Tower } from '../objects/Tower.js';
-import { createDebugHud } from './DebugHud.js';
 import { drawCellar } from '../fx/cellar.js';
 
-// Every custom event on this.events. All listeners for these are removed on
-// shutdown (scene.events survives restarts, so they would otherwise stack up).
+// Every custom event on this.events (documentation). scene.events survives
+// restarts, so each scene removes ONLY its own handlers on shutdown
+// (off(name, fn, ctx)); never off(name) here, it would wipe the HUD's too.
+// Game -> HUD: grapes-changed, lives-changed, wave-started, wave-cleared,
+//   tower-placed, placement-refused, enemy-killed, tower-selected,
+//   tower-clicked, tower-upgraded, upgrade-refused, power-changed, game-over
+// HUD -> Game: start-wave, select-tower, upgrade-tower, activate-power (Task 9)
 export const GAME_EVENTS = [
   'grapes-changed', 'lives-changed', 'wave-started', 'wave-cleared', 'tower-placed',
   'placement-refused', 'enemy-killed', 'start-wave', 'select-tower', 'upgrade-tower',
-  'tower-selected', 'tower-upgraded', 'upgrade-refused',
+  'tower-selected', 'tower-clicked', 'tower-upgraded', 'upgrade-refused',
+  'activate-power', 'power-changed', 'game-over',
 ];
 
 export class GameScene extends Phaser.Scene {
@@ -36,6 +41,7 @@ export class GameScene extends Phaser.Scene {
     this.waveIndex = -1;
     this.clock = 0; // ms of unpaused scene time
     this.ending = false;
+    this.kills = 0;
 
     this.lighting = drawCellar(this);
     this.createSpots();
@@ -43,10 +49,12 @@ export class GameScene extends Phaser.Scene {
     this.events.on('start-wave', this.startWave, this);
     this.events.on('select-tower', this.selectTower, this);
     this.events.on('upgrade-tower', this.upgrade, this);
-    this.input.keyboard.on('keydown-ESC', () => this.selectTower(this.selectedType));
+    this.input.keyboard.on('keydown-ESC', this.onEsc, this);
     this.events.once('shutdown', this.cleanup, this);
 
-    createDebugHud(this); // TEMP until the HUD scene (Task 8)
+    // HUD runs in parallel and talks to Game only through this.events.
+    // launch() is queued, so starting values go in as data.
+    this.scene.launch('HUD', { grapes: this.state.grapes, lives: this.state.lives, wave: this.state.wave });
     this.cameras.main.fadeIn(250, 18, 10, 13);
   }
 
@@ -89,7 +97,7 @@ export class GameScene extends Phaser.Scene {
     if (this.ending) return;
     const tower = this.towerAt(spot.id);
     if (tower && !this.selectedType) {
-      this.events.emit('upgrade-tower', tower.placed);
+      this.events.emit('tower-clicked', tower.placed); // HUD opens the upgrade panel
       return;
     }
     if (!this.selectedType) return;
@@ -107,6 +115,10 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('grapes-changed', this.state.grapes);
     this.events.emit('tower-placed', placed);
     this.selectTower(this.selectedType); // deselect after building
+  }
+
+  onEsc() {
+    if (this.selectedType) this.selectTower(this.selectedType);
   }
 
   // Same type again (or ESC) toggles the selection off.
@@ -140,6 +152,7 @@ export class GameScene extends Phaser.Scene {
     if (!enemy.alive) return;
     if (!enemy.hit(damage)) return;
     this.removeEnemy(enemy, true);
+    this.kills += 1;
     earn(this.state, enemy.reward);
     this.floatText(enemy.x, enemy.y - 16, `+${enemy.reward}`);
     this.events.emit('grapes-changed', this.state.grapes);
@@ -197,14 +210,18 @@ export class GameScene extends Phaser.Scene {
   endGame(result) {
     if (this.ending) return;
     this.ending = true;
-    const data = { result, wave: this.state.wave };
+    const data = { result, wave: this.state.wave, kills: this.kills };
+    this.events.emit('game-over', result);
     this.cameras.main.fadeOut(400, 18, 10, 13);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('End', data));
   }
 
   cleanup() {
-    for (const name of GAME_EVENTS) this.events.off(name);
-    this.input.keyboard.off('keydown-ESC');
+    this.events.off('start-wave', this.startWave, this);
+    this.events.off('select-tower', this.selectTower, this);
+    this.events.off('upgrade-tower', this.upgrade, this);
+    this.input.keyboard.off('keydown-ESC', this.onEsc, this);
+    this.scene.stop('HUD');
     for (const e of this.enemies) e.destroy();
     for (const p of this.projectiles) p.destroy();
     for (const t of this.towers) t.destroy();

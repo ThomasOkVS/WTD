@@ -1,7 +1,11 @@
 import Phaser from 'phaser';
-import { PALETTE } from '../config/palette.js';
+import { PALETTE, COLORS } from '../config/palette.js';
 import { bindTextureGridKey } from '../art/textureGrid.js';
 import { drawCellar } from '../fx/cellar.js';
+import { initSound, startMusic } from '../fx/sound.js';
+import { serif, body, panel, button, enter } from '../ui/kit.js';
+
+const ZOOM = 1.12;
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -10,36 +14,65 @@ export class TitleScene extends Phaser.Scene {
 
   create() {
     drawCellar(this); // lit-cellar backdrop
-    const title = this.add
-      .text(640, 340, 'Wine Cellar Siege', {
-        fontFamily: 'Cinzel, serif',
-        fontStyle: '700',
-        fontSize: '84px',
-        color: PALETTE.candleGold,
-      })
-      .setOrigin(0.5)
-      .setDepth(3000)
-      .setShadow(0, 4, '#120a0d', 12, false, true)
-      .setAlpha(0);
+    const backdrop = this.children.list.slice();
 
-    this.tweens.add({ targets: title, alpha: 1, duration: 300, ease: 'Sine.easeOut' });
+    // Main camera drifts slowly across the zoomed-in cellar; a second,
+    // unzoomed camera draws the title so it stays put and sharp.
+    const cam = this.cameras.main.setBounds(0, 0, 1280, 720).setZoom(ZOOM).centerOn(600, 350);
+    const ui = (this.uiCam = this.cameras.add(0, 0, 1280, 720));
+    ui.ignore(backdrop);
+    const drift = (toRight) =>
+      cam.pan(toRight ? 690 : 590, toRight ? 375 : 345, 11000, 'Sine.easeInOut', true, (_c, p) => {
+        if (p === 1) drift(!toRight);
+      });
+    drift(true);
 
-    const play = this.add
-      .text(640, 470, 'Play', {
-        fontFamily: 'Cinzel, serif',
-        fontStyle: '700',
-        fontSize: '44px',
-        color: PALETTE.amber,
-      })
-      .setOrigin(0.5)
-      .setDepth(3000)
-      .setShadow(0, 3, '#120a0d', 10, false, true)
-      .setAlpha(0)
-      .setInteractive({ useHandCursor: true });
-    play.on('pointerover', () => play.setColor(PALETTE.candleGold));
-    play.on('pointerout', () => play.setColor(PALETTE.amber));
-    play.on('pointerdown', () => this.scene.start('Game'));
-    this.tweens.add({ targets: play, alpha: 1, duration: 300, delay: 200, ease: 'Sine.easeOut' });
+    const uiObjects = this.buildLabel();
+    cam.ignore(uiObjects);
+    // Anything added later (e.g. the T texture grid) draws once, unzoomed.
+    const onAdded = (go) => cam.ignore(go);
+    this.events.on('addedtoscene', onAdded);
+    this.events.once('shutdown', () => this.events.off('addedtoscene', onAdded));
+
+    cam.fadeIn(400, 18, 10, 13);
+    ui.fadeIn(400, 18, 10, 13);
     bindTextureGridKey(this);
+  }
+
+  // The title is a wine label: parchment, double border, Cinzel name.
+  buildLabel() {
+    const c = this.add.container(640, 316);
+    const glow = this.add.image(0, 0, 'light-soft').setBlendMode(Phaser.BlendModes.ADD).setTint(COLORS.amber)
+      .setDisplaySize(1300, 760).setAlpha(0.32);
+    const shadow = this.add.rectangle(6, 12, 700, 300, 0x120a0d, 0.55);
+    const p = panel(this, 0, 0, 700, 300);
+    const top = this.add.text(0, -104, 'Appellation Cave Contrôlée', body(20, PALETTE.burgundy)).setOrigin(0.5);
+    const ruleA = this.add.rectangle(0, -80, 420, 1.5, COLORS.burgundy, 0.6);
+    const title = this.add.text(0, -26, 'Wine Cellar Siege', serif(64)).setOrigin(0.5);
+    title.setLetterSpacing(2);
+    const sub = this.add.text(0, 32, 'A Candle-lit Tower Defense', body(28, PALETTE.burgundy)).setOrigin(0.5);
+    const ruleB = this.add.rectangle(0, 70, 420, 1.5, COLORS.burgundy, 0.6);
+    const foot = this.add.text(0, 96, 'Grand Cru, defended by hand in the cellar', body(18, PALETTE.ink)).setOrigin(0.5).setAlpha(0.8);
+    c.add([glow, shadow, p, top, ruleA, title, sub, ruleB, foot]);
+    enter(this, c, { dy: 18, duration: 300, delay: 100 });
+
+    const play = button(this, 640, 548, 220, 64, 'Play', () => this.start(play), { size: 30 });
+    enter(this, play, { dy: 18, duration: 260, delay: 320 });
+    const hint = this.add.text(640, 610, 'Defend the Grand Cru from seven waves of pests', body(19, PALETTE.candleGold)).setOrigin(0.5);
+    hint.setShadow(0, 2, '#120a0d', 6, false, true);
+    enter(this, hint, { duration: 300, delay: 480, alpha: 0.85 });
+    return [c, play, hint];
+  }
+
+  start(play) {
+    if (this.starting) return;
+    this.starting = true;
+    play.setEnabled(false);
+    // Task 10 hook: first user gesture unlocks WebAudio here.
+    initSound();
+    startMusic();
+    this.cameras.main.fadeOut(300, 18, 10, 13);
+    this.uiCam.fadeOut(300, 18, 10, 13);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => this.scene.start('Game'));
   }
 }

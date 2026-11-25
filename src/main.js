@@ -3,6 +3,7 @@ import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { EndScene } from './scenes/EndScene.js';
+import { HUDScene } from './scenes/HUDScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -11,7 +12,8 @@ const game = new Phaser.Game({
   parent: 'game',
   backgroundColor: '#120a0d',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, TitleScene, GameScene, EndScene],
+  // HUD after Game: array order is render order, so the HUD draws on top.
+  scene: [BootScene, TitleScene, GameScene, HUDScene, EndScene],
 });
 
 if (import.meta.env.DEV) window.__game = game;
