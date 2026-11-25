@@ -22,6 +22,10 @@ export function describeEffect({ stat, mult, tower }) {
   return `+${pct}% ${STAT_LABEL[stat] || stat}\n${who}`;
 }
 
+// Each wine's bottle is coloured by what it does, so the three differ at a glance.
+const WINE_COLOR = { damage: 0x8a1c2b, rate: 0xc8862a, reward: 0x5a2a6a };
+export const wineColor = (stat) => WINE_COLOR[stat] ?? 0xd77a8a;
+
 const CARD_W = 214, CARD_H = 300, CARD_Y = 430;
 const CARD_X = [600, 840, 1080];
 
@@ -72,7 +76,7 @@ export class TastingScene extends Phaser.Scene {
 
     // parchment speech bubble above his head, tail pointing down at him
     const b = this.add.container(250, 196);
-    const W = 400, H = 132;
+    const W = 430, H = 132;
     const tail = this.add.graphics();
     tail.fillStyle(0xe9dcc0, 1).fillTriangle(-70, H / 2 - 8, -30, H / 2 - 8, -64, H / 2 + 26);
     tail.lineStyle(2, COLORS.burgundy, 0.8).lineBetween(-70, H / 2 - 2, -64, H / 2 + 26).lineBetween(-64, H / 2 + 26, -30, H / 2 - 2);
@@ -82,7 +86,7 @@ export class TastingScene extends Phaser.Scene {
     b.setScale(0.9);
     enter(this, b, { dy: 12, delay: 200, duration: 260 });
     this.tweens.add({ targets: b, scale: 1, delay: 200, duration: 260, ease: 'Back.easeOut' });
-    this.bubble = { b, text };
+    this.bubble = { b, text, wrap: W - 56 };
   }
 
   say(line) {
@@ -93,6 +97,12 @@ export class TastingScene extends Phaser.Scene {
       targets: text, alpha: 0, duration: text.text ? 90 : 0,
       onComplete: () => {
         text.setText(`“${line}”`);
+        // no one-word last line ("I would hire / it."): narrow the wrap until it balances
+        for (const w of [this.bubble.wrap, this.bubble.wrap - 50, this.bubble.wrap - 100]) {
+          text.setWordWrapWidth(w, true);
+          const lines = text.getWrappedText();
+          if (lines.length < 2 || lines[lines.length - 1].trim().length >= 8) break;
+        }
         this.tweens.add({ targets: text, alpha: 1, duration: 140 });
       },
     });
@@ -103,8 +113,9 @@ export class TastingScene extends Phaser.Scene {
     const glow = this.add.image(0, 0, 'light-soft').setBlendMode(Phaser.BlendModes.ADD).setTint(COLORS.amber)
       .setDisplaySize(CARD_W * 1.8, CARD_H * 1.5).setAlpha(0);
     const bg = panel(this, 0, 0, CARD_W, CARD_H);
-    const bottleGlow = this.add.image(0, -70, 'light-soft').setTint(COLORS.burgundy).setDisplaySize(170, 170).setAlpha(0.25);
-    const bottle = this.add.image(0, -66, 'grand-cru').setScale(1.05);
+    const hue = wineColor(wine.effect.stat);
+    const bottleGlow = this.add.image(0, -70, 'light-soft').setTint(hue).setDisplaySize(170, 170).setAlpha(0.35);
+    const bottle = this.add.image(0, -66, 'grand-cru').setScale(1.05).setTint(hue).setTintMode(Phaser.TintModes.SCREEN);
     const name = this.add.text(0, 20, wine.name, serif(19, PALETTE.ink, { align: 'center', wordWrap: { width: CARD_W - 36 } })).setOrigin(0.5, 0);
     const rule = this.add.rectangle(0, 76, CARD_W - 70, 1.5, COLORS.burgundy, 0.6);
     const effect = this.add.text(0, 110, describeEffect(wine.effect), body(21, PALETTE.burgundy, { align: 'center' })).setOrigin(0.5);
