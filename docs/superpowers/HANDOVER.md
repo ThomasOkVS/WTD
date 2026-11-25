@@ -17,6 +17,13 @@
   - Thomas (option a): Recruit every 6/4.5/3 s, the recruit smashes every pest it walks through (once each), morale aura +15%/+25% fire rate within 120 px (gold ring).
   - Free placement: ghost + range ring follows the pointer on an 8 px grid; refused on the path, under the HUD, too close to a tower, or on candles/barrels. Right-click or Esc cancels. `BUILD_SPOTS` is gone.
   - `npm test` passes 43/43.
+- **Enemies Fight Back (2026-11-25, ~12:50), plan `docs/superpowers/plans/2026-11-25-enemies-fight-back.md` Tasks 1–5 plus Task 6 items 1–2, all pushed:**
+  - Rules in `src/logic/siege.js` (tested): tower HP (`maxHp` per level in `config/towers.js`, upgrades add the gain), `repairCost` = 50% of the Grapes invested × missing-HP share, per-pest attackers (fly dash, corkscrew ranged, rat chew-and-hold, can burst, Le Monstre Blanc slam).
+  - Game: `enemyAttacks` → `damageTower` → `sweepTowers` (one sweep per frame, after the loop). A destroyed tower is gone for good, its spot is free, a dead Thomas can be rebuilt. HP bar above each damaged tower, 80 ms red flash on hits.
+  - HUD: the upgrade panel shows HP + a Repair button (refusals shake, flash and toast). It closes if its tower dies. Card tooltips show max HP.
+  - New demo key **`D`**: every tower to 25% HP. README demo script updated (pick the wine first: keys are dead while the Tasting is open).
+  - Balance: `SIEGE.damageMult = 0.4` (config/enemies.js). A scripted honest build that never repairs loses 1 tower by wave 6 and wins wave 7 with 20 lives; at 1.0 it lost the run at wave 5.
+  - Review Focus 1–5 checked in the dev build. `npm test` passes 60/60.
 - **Next:** bug-bash and run the README demo script on the live site before 15:45.
 
 ## The feedback (user's words)
