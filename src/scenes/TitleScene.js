@@ -3,6 +3,7 @@ import { HD, hdCamera } from '../ui/hd.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { bindTextureGridKey } from '../art/textureGrid.js';
 import { drawCellar } from '../fx/cellar.js';
+import { startAttract } from '../fx/attract.js';
 import { initSound, startMusic, isSoundReady } from '../fx/sound.js';
 import { serif, body, panel, button, enter } from '../ui/kit.js';
 
@@ -16,7 +17,7 @@ export class TitleScene extends Phaser.Scene {
   create() {
     this.starting = false; // scene instances are reused
     // lit-cellar backdrop; no Grand Cru: at the title zoom it sat cut off at the right edge
-    drawCellar(this, { grandCru: false });
+    const lighting = drawCellar(this, { grandCru: false });
     const backdrop = this.children.list.slice();
 
     // Main camera drifts slowly across the zoomed-in cellar; a second,
@@ -25,6 +26,7 @@ export class TitleScene extends Phaser.Scene {
     const cam = hdCamera(this, ZOOM, 600, 350);
     const ui = (this.uiCam = this.cameras.add(0, 0, 1280 * HD, 720 * HD).setZoom(HD).centerOn(640, 360));
     ui.ignore(backdrop);
+    startAttract(this, { ui, lighting }); // scripted battle behind the card; tears itself down on shutdown
     // Chain legs on PAN_COMPLETE: a pan started inside the pan's own update
     // callback is wiped by effectComplete() right after (Phaser 4).
     let toRight = true;
