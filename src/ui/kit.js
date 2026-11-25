@@ -40,9 +40,18 @@ export function grapeIcon(scene, x, y, s = 1) {
   return g;
 }
 
-// Burgundy button with gold rules and parchment Cinzel label. Hover: lift,
-// candle glow; press: dip. Returns a container with setEnabled(bool).
-export function button(scene, x, y, w, h, label, onClick, { size = 24 } = {}) {
+// Button look per variant: primary (burgundy, the one main action), secondary
+// (parchment, quieter) and danger (dark with a red rule, destructive).
+const VARIANTS = {
+  primary: { fill: COLORS.burgundy, hover: 0xa02436, line: COLORS.candleGold, inner: COLORS.candleGold, text: PALETTE.parchment, shadow: '#120a0d', glow: 0.55, sheen: 0.07 },
+  secondary: { fill: 0xf1e4c8, hover: 0xfff3da, line: COLORS.burgundy, inner: COLORS.burgundy, text: PALETTE.burgundy, shadow: 'rgba(0,0,0,0)', glow: 0.28, sheen: 0.25 },
+  danger: { fill: 0x2a1216, hover: 0x4a0d18, line: 0xd01a3a, inner: 0xd01a3a, text: PALETTE.parchment, shadow: '#120a0d', glow: 0.3, sheen: 0.05 },
+};
+
+// Wine-label button with Cinzel label. Hover: lift, candle glow; press: dip.
+// Returns a container with setEnabled(bool).
+export function button(scene, x, y, w, h, label, onClick, { size = 24, variant = 'primary' } = {}) {
+  const v = VARIANTS[variant] ?? VARIANTS.primary;
   const c = scene.add.container(x, y);
   const glow = scene.add.image(0, 0, 'light-soft').setBlendMode(Phaser.BlendModes.ADD).setTint(COLORS.amber)
     .setDisplaySize(w * 1.7, h * 3).setAlpha(0);
@@ -50,14 +59,14 @@ export function button(scene, x, y, w, h, label, onClick, { size = 24 } = {}) {
   const draw = (hover) => {
     bg.clear();
     bg.fillStyle(0x120a0d, 0.55).fillRoundedRect(-w / 2 + 2, -h / 2 + 5, w, h, 8); // drop shadow
-    bg.fillStyle(hover ? 0xa02436 : COLORS.burgundy, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 8);
-    bg.fillStyle(0xffffff, 0.07).fillRoundedRect(-w / 2 + 3, -h / 2 + 3, w - 6, h / 2 - 3, 6);
-    bg.lineStyle(2, COLORS.candleGold, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
-    bg.lineStyle(1, COLORS.candleGold, 0.45).strokeRoundedRect(-w / 2 + 5, -h / 2 + 5, w - 10, h - 10, 5);
+    bg.fillStyle(hover ? v.hover : v.fill, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 8);
+    bg.fillStyle(0xffffff, v.sheen).fillRoundedRect(-w / 2 + 3, -h / 2 + 3, w - 6, h / 2 - 3, 6);
+    bg.lineStyle(2, v.line, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
+    bg.lineStyle(1, v.inner, 0.45).strokeRoundedRect(-w / 2 + 5, -h / 2 + 5, w - 10, h - 10, 5);
   };
   draw(false);
-  const text = scene.add.text(0, 1, label, serif(size, PALETTE.parchment)).setOrigin(0.5);
-  text.setShadow(0, 2, '#120a0d', 4, false, true);
+  const text = scene.add.text(0, 1, label, serif(size, v.text)).setOrigin(0.5);
+  text.setShadow(0, 2, v.shadow, variant === 'secondary' ? 0 : 4, false, true);
   const hit = scene.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
   c.add([glow, bg, text, hit]);
   c.enabled = true;
@@ -66,7 +75,7 @@ export function button(scene, x, y, w, h, label, onClick, { size = 24 } = {}) {
   hit.on('pointerover', () => {
     if (!c.enabled) return;
     draw(true);
-    scene.tweens.add({ targets: glow, alpha: 0.55, duration: 180 });
+    scene.tweens.add({ targets: glow, alpha: v.glow, duration: 180 });
     scene.tweens.add({ targets: c, y: c.baseY - 3, scale: 1.04, duration: 150, ease: 'Sine.easeOut' });
   });
   hit.on('pointerout', () => {
