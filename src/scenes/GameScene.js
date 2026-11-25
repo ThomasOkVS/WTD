@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hdCamera } from '../ui/hd.js';
 import { PATH } from '../config/map.js';
 import { TOWERS } from '../config/towers.js';
 import { WAVES } from '../config/waves.js';
@@ -35,6 +36,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    hdCamera(this); // 2x canvas, same 1280x720 world
     // Fresh run state: everything is (re)initialised here, never in the constructor.
     this.state = createGameState();
     this.path = createPath(PATH);
@@ -93,7 +95,7 @@ export class GameScene extends Phaser.Scene {
   // Pointer over a HUD element (cards, buttons, an open upgrade panel)?
   // HUD runs above Game, so those clicks are the HUD's, never a placement.
   overHud(pointer) {
-    if (pointer.y > 598) return true;
+    if (pointer.worldY > 598) return true; // world coords: screen pixels are HD x larger
     const hud = this.scene.get('HUD');
     return !!(hud?.sys.isActive() && hud.input.hitTestPointer(pointer).length);
   }
@@ -122,7 +124,7 @@ export class GameScene extends Phaser.Scene {
     const hud = this.overHud(pointer);
     if (this.selectedType) {
       if (hud) return this.hideGhost();
-      const pos = snap(pointer);
+      const pos = snap({ x: pointer.worldX, y: pointer.worldY });
       const check = canPlace(this.state, this.selectedType, pos);
       // grapes/unique don't depend on where you point: the ghost judges the spot only
       const spotOk = check.ok || check.reason === 'grapes' || check.reason === 'unique';
@@ -131,7 +133,7 @@ export class GameScene extends Phaser.Scene {
       this.drawRange(pos.x, pos.y, TOWERS[this.selectedType].range, spotOk);
       return;
     }
-    const t = hud ? null : this.towerNear(pointer.x, pointer.y);
+    const t = hud ? null : this.towerNear(pointer.worldX, pointer.worldY);
     if (t === this.hoverTower) return;
     this.hoverTower = t;
     this.rangeRing.clear();
@@ -147,11 +149,11 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.overHud(pointer)) return;
     if (!this.selectedType) {
-      const tower = this.towerNear(pointer.x, pointer.y);
+      const tower = this.towerNear(pointer.worldX, pointer.worldY);
       if (tower) this.events.emit('tower-clicked', tower.placed); // HUD opens the upgrade panel
       return;
     }
-    this.tryPlace(snap(pointer));
+    this.tryPlace(snap({ x: pointer.worldX, y: pointer.worldY }));
   }
 
   tryPlace(pos) {

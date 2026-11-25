@@ -7,11 +7,13 @@ import { HUDScene } from './scenes/HUDScene.js';
 import { TastingScene } from './scenes/TastingScene.js';
 import { toggleMuted, isMuted } from './fx/sound.js';
 import { toggleProjector } from './fx/projector.js';
+import { HD } from './ui/hd.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
-  width: 1280,
-  height: 720,
+  // HD canvas: every scene camera zooms HD x around the 1280x720 world (src/ui/hd.js)
+  width: 1280 * HD,
+  height: 720 * HD,
   parent: 'game',
   backgroundColor: '#120a0d',
   audio: { noAudio: true }, // we synthesise our own WebAudio (src/fx/sound.js)

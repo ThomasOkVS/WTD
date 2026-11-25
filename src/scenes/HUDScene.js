@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hdCamera } from '../ui/hd.js';
 import { TOWERS, statLine } from '../config/towers.js';
 import { towerStats } from '../logic/towers.js';
 import { repairCost } from '../logic/siege.js';
@@ -36,6 +37,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   create() {
+    hdCamera(this); // 2x canvas, same 1280x720 world
     this.game$ = this.scene.get('Game').events;
     this.input.enabled = true; // re-enable after a previous run's game-over
     this.listeners = [];

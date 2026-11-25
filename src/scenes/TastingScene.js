@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hdCamera } from '../ui/hd.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { TOWERS } from '../config/towers.js';
 import { drawTasting } from '../logic/buffs.js';
@@ -33,6 +34,7 @@ export class TastingScene extends Phaser.Scene {
   }
 
   create() {
+    hdCamera(this); // 2x canvas, same 1280x720 world
     this.picked = false; // instance is reused every wave: reset here
     this.game$ = this.scene.get('Game').events;
     this.wines = drawTasting();

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hdCamera } from '../ui/hd.js';
 import { generateTextures } from '../art/textures.js';
 
 export class BootScene extends Phaser.Scene {
@@ -7,6 +8,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    hdCamera(this); // 2x canvas, same 1280x720 world
     let started = false;
     // Generate after fonts load so the THOMAS name plate bakes in Cinzel.
     const go = () => {
