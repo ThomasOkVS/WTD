@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PALETTE } from '../config/palette.js';
 import { serif, body, panel, button, enter } from '../ui/kit.js';
+import { hdCamera } from '../ui/hd.js';
 
 // Modal over a paused Game (pattern: TastingScene). Two modes:
 //  'pause'   Resume / Restart / Back to title; P or Esc resumes.
@@ -16,6 +17,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   create() {
+    hdCamera(this); // HD canvas, same 1280x720 world
     this.done = false; // instance is reused: reset per-run flags here (REGRET.md 10:37)
     this.gameScene = this.scene.get('Game');
 

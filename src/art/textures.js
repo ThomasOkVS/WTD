@@ -2,6 +2,7 @@
 // 2D context (gradients, soft shadows) so the game ships with zero image files.
 // Enemies face RIGHT (angle 0 = moving right). Towers are top-down-ish 3/4 view.
 import { PALETTE as P } from '../config/palette.js';
+import { HD } from '../ui/hd.js';
 
 export const TEXTURE_KEYS = [
   'stone-floor', 'path-tile', 'barrel', 'candle', 'light-soft', 'vignette', 'grand-cru',
@@ -41,14 +42,25 @@ function rng(seed) {
   };
 }
 
-function make(scene, key, w, h, draw) {
+// Supersampling: textures are drawn SS x larger and their frame is mapped back
+// to the logical w x h, so sprites, hit areas and particles keep their size but
+// stay sharp on the HD canvas (src/ui/hd.js). 2x art also serves the 1.5x
+// canvas; ?hd=1 turns supersampling off too (the full revert).
+const SS = HD > 1 ? 2 : 1;
+
+function make(scene, key, w, h, draw, ss = SS) {
   if (scene.textures.exists(key)) return;
-  const tex = scene.textures.createCanvas(key, w, h);
+  const tex = scene.textures.createCanvas(key, w * ss, h * ss);
   const ctx = tex.getContext();
   ctx.save();
+  ctx.scale(ss, ss);
   draw(ctx, w, h);
   ctx.restore();
   tex.refresh(); // required: uploads the canvas to the GPU
+  if (ss === 1) return;
+  const f = tex.get();
+  f.setSize(w, h); // logical size: width/height, displayWidth, hit areas
+  f.setUVs(w * ss, h * ss, 0, 1, 1, 0); // sample the whole canvas (v flipped like Frame#updateUVs)
 }
 
 // ---------- helpers ----------
@@ -700,19 +712,14 @@ function towerThomas(ctx, w, h) {
     rim: P.amber, vest: '#2a1216', tie: P.candleGold, apron: P.burgundy, apronLo: '#4a0d18', hair: '#5a3a22',
     tastevin: true, moustache: true, halo: true,
   });
-  // THOMAS name plate on the pedestal front
+  // gold name plate on the pedestal front
   const cx = w / 2, y = h - 8;
   rrect(ctx, cx - 17, y - 4, 34, 9, 2);
   ctx.fillStyle = linear(ctx, 0, y - 4, 0, y + 5, [[0, '#ffe1a0'], [0.5, P.candleGold], [1, '#8a6a3e']]);
   ctx.fill();
   ctx.strokeStyle = '#5a4022';
   ctx.lineWidth = 0.8;
-  ctx.stroke();
-  ctx.fillStyle = P.ink;
-  ctx.font = '700 6.5px Cinzel, serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('THOMAS', cx, y + 0.8);
+  ctx.stroke(); // plain gold plate: his name is a real text banner on the board (Tower#nameTag)
 }
 
 function towerCork(ctx, w, h) {
@@ -965,12 +972,12 @@ function parchmentPanel(ctx, w, h) {
 }
 
 export function generateTextures(scene) {
-  make(scene, 'stone-floor', 128, 128, (c, w) => stoneFloor(c, w));
-  make(scene, 'path-tile', 64, 64, (c, w) => pathTile(c, w));
+  make(scene, 'stone-floor', 128, 128, (c, w) => stoneFloor(c, w), 1); // ss 1: TileSprite repeats source pixels
+  make(scene, 'path-tile', 64, 64, (c, w) => pathTile(c, w), 1); // ss 1: TileSprite
   make(scene, 'barrel', 64, 64, barrel);
   make(scene, 'candle', 32, 48, candle);
-  make(scene, 'light-soft', 256, 256, (c, w) => lightSoft(c, w));
-  make(scene, 'vignette', 1280, 720, vignette);
+  make(scene, 'light-soft', 256, 256, (c, w) => lightSoft(c, w), 1); // soft gradient: 2x only costs memory
+  make(scene, 'vignette', 1280, 720, vignette, 1);
   make(scene, 'grand-cru', 64, 96, grandCru);
   make(scene, 'enemy-fly', 32, 32, enemyFly);
   make(scene, 'enemy-corkscrew', 40, 32, enemyCorkscrew);
@@ -986,5 +993,5 @@ export function generateTextures(scene) {
   make(scene, 'drop', 10, 16, drop);
   make(scene, 'spark', 16, 16, spark);
   make(scene, 'taureau-rouge', 40, 96, taureauRouge);
-  make(scene, 'parchment-panel', 256, 128, parchmentPanel);
+  make(scene, 'parchment-panel', 256, 128, parchmentPanel, 1); // ss 1: NineSlice slices are in source pixels
 }

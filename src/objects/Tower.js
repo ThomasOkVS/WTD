@@ -5,6 +5,7 @@ import { applyBuffs } from '../logic/buffs.js';
 import { Projectile } from './Projectile.js';
 import { play } from '../fx/sound.js';
 import { corkPop, wineRing } from '../fx/particles.js';
+import { serif } from '../ui/kit.js';
 
 // Placed tower (state object) -> merged stats (+ Wine Tasting buffs) + its position.
 export function towerInfo(placed, buffs = []) {
@@ -23,8 +24,11 @@ export class Tower {
     // Thomas: first recruit comes quickly so the feature is visible early
     this.recruitLeft = placed.type === 'thomas' ? Math.min(3000, this.stats.recruitCooldownMs) : 0;
     const { x, y } = this.stats;
+    // Thomas is the star: a size up, a real name banner and a gold spotlight (GameScene)
+    this.baseScale = placed.type === 'thomas' ? 1.25 : 1;
     this.sprite = scene.add.image(x, y + 20, `tower-${placed.type}`).setOrigin(0.5, 0.85).setDepth(y + 20).setScale(0);
-    scene.tweens.add({ targets: this.sprite, scale: 1, duration: 260, ease: 'Back.easeOut' });
+    scene.tweens.add({ targets: this.sprite, scale: this.baseScale, duration: 260, ease: 'Back.easeOut' });
+    if (placed.type === 'thomas') this.nameTag = this.makeNameTag(x, y - 76); // clears the raised HP bar (top y - 59) while it bobs
     if (this.stats.aura) {
       // Thomas's morale aura: faint gold circle, above the darkness so it reads
       this.auraRing = scene.add.circle(x, y, this.stats.auraRange).setStrokeStyle(2, 0xffd36b, 0.3).setDepth(2540).setAlpha(0);
@@ -35,6 +39,20 @@ export class Tower {
     this.drawHp();
   }
 
+  // THOMAS banner above his HP bar: above the darkness (2500) and glow (2600),
+  // below the vignette (2700). Display only: it takes no input.
+  makeNameTag(x, y) {
+    const scene = this.scene;
+    const plate = scene.add.graphics();
+    plate.fillStyle(0x120a0d, 0.85).fillRoundedRect(-46, -12, 92, 24, 8)
+      .lineStyle(1.5, 0xffd36b, 1).strokeRoundedRect(-46, -12, 92, 24, 8);
+    const label = scene.add.text(0, 1, 'THOMAS', serif(15, '#ffd36b')).setOrigin(0.5);
+    const tag = scene.add.container(x, y, [plate, label]).setDepth(2610).setAlpha(0);
+    scene.tweens.add({ targets: tag, alpha: 1, duration: 260, delay: 120 });
+    scene.tweens.add({ targets: tag, y: { from: y - 3, to: y + 3 }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    return tag;
+  }
+
   drawHp() {
     const max = towerStats(this.placed).maxHp;
     const f = Math.max(0, Math.min(1, this.placed.hp / max));
@@ -42,7 +60,7 @@ export class Tower {
     if (f >= 1 || this.dead) return g.setVisible(false);
     g.setVisible(true);
     const { x, y } = this.stats;
-    const w = 36, h = 4, top = y - 44; // just above the sprite's head (64 px texture, foot at y + 20)
+    const w = 36, h = 4, top = y - 44 - (this.baseScale - 1) * 60; // just above the head (64 px texture, foot at y + 20; Thomas is scaled up)
     g.fillStyle(0x120a0d, 0.85).fillRect(x - w / 2 - 1, top - 1, w + 2, h + 2);
     g.fillStyle(f > 0.5 ? 0x8fd16a : f > 0.25 ? 0xffb35c : 0xd01a3a, 1).fillRect(x - w / 2, top, w * f, h);
   }
@@ -66,7 +84,7 @@ export class Tower {
   refresh() {
     this.recompute();
     this.drawHp();
-    this.scene.tweens.add({ targets: this.sprite, scale: 1.2, duration: 120, yoyo: true, ease: 'Sine.easeOut' });
+    this.scene.tweens.add({ targets: this.sprite, scale: this.baseScale * 1.2, duration: 120, yoyo: true, ease: 'Sine.easeOut' });
   }
 
   // Thomas Recruit: only ticks while a wave is running (Game decides).
@@ -96,7 +114,7 @@ export class Tower {
     this.cooldown = 1 / (s.rate * morale * (this.scene.powerUp?.fireRateMult() ?? 1));
     // squash only when idle: overlapping the pop-in/upgrade tween left it stretched
     if (!this.scene.tweens.isTweening(this.sprite)) {
-      this.scene.tweens.add({ targets: this.sprite, scaleY: { from: 1, to: 0.92 }, duration: 60, yoyo: true });
+      this.scene.tweens.add({ targets: this.sprite, scaleY: { from: this.baseScale, to: this.baseScale * 0.92 }, duration: 60, yoyo: true });
     }
 
     if (s.type === 'sommelier') {
@@ -148,5 +166,7 @@ export class Tower {
     this.hpBar.destroy();
     if (this.auraRing) this.scene.tweens.killTweensOf(this.auraRing); // Thomas can die mid-run now
     this.auraRing?.destroy();
+    if (this.nameTag) this.scene.tweens.killTweensOf(this.nameTag);
+    this.nameTag?.destroy();
   }
 }

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { HD, hdCamera } from '../ui/hd.js';
 import { PALETTE, COLORS } from '../config/palette.js';
 import { bindTextureGridKey } from '../art/textureGrid.js';
 import { drawCellar } from '../fx/cellar.js';
@@ -19,8 +20,9 @@ export class TitleScene extends Phaser.Scene {
 
     // Main camera drifts slowly across the zoomed-in cellar; a second,
     // unzoomed camera draws the title so it stays put and sharp.
-    const cam = this.cameras.main.setBounds(0, 0, 1280, 720).setZoom(ZOOM).centerOn(600, 350);
-    const ui = (this.uiCam = this.cameras.add(0, 0, 1280, 720));
+    this.cameras.main.setBounds(0, 0, 1280, 720);
+    const cam = hdCamera(this, ZOOM, 600, 350);
+    const ui = (this.uiCam = this.cameras.add(0, 0, 1280 * HD, 720 * HD).setZoom(HD).centerOn(640, 360));
     ui.ignore(backdrop);
     // Chain legs on PAN_COMPLETE: a pan started inside the pan's own update
     // callback is wiped by effectComplete() right after (Phaser 4).

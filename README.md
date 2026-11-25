@@ -46,8 +46,9 @@ Presenter shortcuts. They work in the dev and production builds and have no on-s
 | `M` | Mute / unmute |
 | `P` / `Esc` | Pause: Resume, Restart, Back to title (`Esc` first cancels a placement or closes the upgrade panel) |
 | `F` | 2× speed (toggle; every new run starts at 1×) |
+| `L` | Projector mode: brighter cellar for big screens (remembered) |
 
-Except `M`, the keys are ignored while the Wine Tasting is open (the cellar is paused) and after game over. Digits use the physical number row (no Shift needed on AZERTY).
+Except `M` and `L`, the keys are ignored while the Wine Tasting is open (the cellar is paused) and after game over. Digits use the physical number row (no Shift needed on AZERTY).
 
 Demo script (under 2 minutes): Play → `G` `G` `G` → place towers (incl. Thomas) and upgrade a few → `1` → wave cleared, Wine Tasting → pick a wine → `D` → click a tower → Repair (the pests fight back) → `W` for a second tasting → `7` (the last wave brings Le Monstre Blanc on its own) → fire Taureau Rouge as the boss enters → Le Monstre Blanc splits into cans → End screen. Use `B` only to show the boss early on an empty field, never on top of wave 7.
 

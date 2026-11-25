@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hdCamera } from '../ui/hd.js';
 import { TOWERS, statLine } from '../config/towers.js';
 import { towerStats } from '../logic/towers.js';
 import { repairCost, sellValue } from '../logic/siege.js';
@@ -8,6 +9,7 @@ import { PALETTE, COLORS } from '../config/palette.js';
 import { serif, body, panel, grapeIcon, button, enter, shake, fitText, INK } from '../ui/kit.js';
 import { describeEffect } from './TastingScene.js';
 import { play, isMuted, setMuted } from '../fx/sound.js';
+import { onProjectorChange } from '../fx/projector.js';
 
 const CARD_W = 168, CARD_H = 92, CARD_Y = 664;
 const TOAST = {
@@ -36,6 +38,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   create() {
+    hdCamera(this); // 2x canvas, same 1280x720 world
     this.game$ = this.scene.get('Game').events;
     this.input.enabled = true; // re-enable after a previous run's game-over
     this.listeners = [];
@@ -89,7 +92,9 @@ export class HUDScene extends Phaser.Scene {
     });
 
     // Esc is Game's (onEsc): cancel placement, then close this panel, then pause.
+    const offProjector = onProjectorChange((on) => this.showToast(on ? 'Projector mode on' : 'Projector mode off'));
     this.events.once('shutdown', () => {
+      offProjector();
       for (const [name, fn] of this.listeners) this.game$.off(name, fn, this);
       this.listeners = [];
     });
